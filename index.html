@@ -84,24 +84,20 @@
         <p style="font-size:0.75rem; color:var(--text-muted); margin-top:20px; text-align:center;">Ambos usan el MISMO nombre para compartir datos</p>
     </div>
 
-    <!-- ✅ FIX: Cargar Supabase antes del script principal -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-        // ✅ FIX: Usar un nombre de variable diferente para evitar conflicto con window.supabase
         const SUPABASE_URL = 'https://blckzxhtpxxwhlsksrzz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
         
-        // ✅ FIX: Renombrado a 'sbClient' para no chocar con el namespace 'supabase' del CDN
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
         let currentView = 'dashboard';
         let appData = { shopping: {}, tasks: {}, plants: {}, expenses: {} };
-        let filterShop = 'todos'; // ✅ FIX: filterShop separado para que no se pierda al recargar datos
+        let filterShop = 'todos';
         let syncSubscription = null;
 
-        // ✅ FIX: Storage helper con fallback a memoria si localStorage está bloqueado
         const storage = {
             _mem: {},
             set(key, val) {
@@ -115,7 +111,6 @@
             }
         };
 
-        // ✅ FIX: Botón usa addEventListener en lugar de onclick inline para evitar problemas de scope
         document.getElementById('login-btn').addEventListener('click', login);
         document.getElementById('name-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') login();
@@ -171,7 +166,6 @@
                 
                 if (records && records.data_json) {
                     const parsed = JSON.parse(records.data_json);
-                    // ✅ FIX: Merge seguro para no perder filterShop ni claves nuevas
                     appData = {
                         shopping: parsed.shopping || {},
                         tasks: parsed.tasks || {},
@@ -216,7 +210,6 @@
         }
 
         function subscribeToChanges() {
-            // ✅ FIX: Canal único por usuario para sincronización correcta entre dos teléfonos
             if (syncSubscription) {
                 sbClient.removeChannel(syncSubscription);
             }
@@ -258,7 +251,6 @@
             if (statusEl) statusEl.textContent = status;
         }
 
-        // ✅ FIX: setView recibe el botón como parámetro para no depender de 'event'
         function setView(v, btn) {
             currentView = v;
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -470,7 +462,6 @@
             `;
         }
 
-        // ✅ FIX: Auto-login al cargar la página
         window.onload = async function() {
             const saved = storage.get('homehub-user');
             if (saved) {
@@ -486,42 +477,4 @@
         };
     </script>
 </body>
-  <script>
-    // Configuración de Supabase
-    const SUPABASE_URL = "https://blckzxhtpxxwhlsksrzz.supabase.co"; 
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g"; 
-
-    async function cargarDatos() {
-      try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/tabla?user_name=eq.pareja`, {
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error("Error en la respuesta: " + response.status);
-        }
-
-        const data = await response.json();
-        console.log("Datos recibidos:", data);
-
-        const contenedor = document.getElementById("resultado");
-        if (contenedor) {
-          contenedor.innerHTML = JSON.stringify(data, null, 2);
-        }
-
-      } catch (error) {
-        console.error("Hubo un problema:", error);
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", cargarDatos);
-  </script>
-</body>
-</html>
-    
 </html>
