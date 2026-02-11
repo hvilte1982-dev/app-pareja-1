@@ -84,15 +84,12 @@
         <p style="font-size:0.75rem; color:var(--text-muted); margin-top:20px;">Ambos usan el MISMO nombre para compartir datos</p>
     </div>
 
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-        // ✅ CONFIGURADO CON TUS CREDENCIALES
         const SUPABASE_URL = 'https://blckzxhtpxxwhlsksrzz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
         
-        // Inicializar Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let user = null;
@@ -114,12 +111,8 @@
             document.getElementById('app').style.display = 'flex';
             document.getElementById('user-name').textContent = name;
             
-            // Cargar datos desde Supabase
             await loadFromSupabase();
-            
-            // Suscribirse a cambios en tiempo real
             subscribeToChanges();
-            
             render();
         }
 
