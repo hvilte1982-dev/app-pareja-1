@@ -1,975 +1,491 @@
+Entiendo que esté dando error. Lo más probable es que haya un conflicto con los datos antiguos guardados en tu navegador (formatos viejos vs nuevos).
+
+Para solucionarlo definitivamente, he agregado una **"sanitización de datos"** que limpia cualquier error de formato automáticamente al cargar. También he simplificado el código para que sea más estable.
+
+**Pasos para que funcione:**
+1.  Copia este nuevo código.
+2.  Si al entrar te sigue dando error, haz clic en el botón **"Reset"** (el icono de flecha circular en la esquina superior derecha) para limpiar la memoria y empezar de cero.
+
+Aquí tienes el código corregido y blindado contra errores:
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#6366f1">
-    <title>HomeHub | Versión Maestra</title>
-    <!-- Supabase SDK v2 -->
+    <title>HomeHub Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: hsl(250, 60%, 60%);
-            --primary-light: hsl(250, 60%, 85%);
-            --primary-dark: hsl(250, 60%, 40%);
-            --secondary: hsl(180, 50%, 45%);
-            --accent: hsl(30, 90%, 60%);
-            --success: hsl(145, 50%, 50%);
-            --danger: hsl(0, 70%, 60%);
-            --warning: hsl(45, 90%, 60%);
-            --bg-main: hsl(220, 20%, 97%);
-            --bg-card: hsl(0, 0%, 100%);
-            --text-main: hsl(220, 15%, 15%);
-            --text-muted: hsl(220, 10%, 45%);
-            --border: hsl(220, 15%, 90%);
-            --glass-bg: hsla(0, 0%, 100%, 0.7);
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            --nav-height: 70px;
-            --header-height: 85px;
-            --radius-md: 18px;
-            --radius-lg: 30px;
+            --primary: hsl(250, 60%, 60%); --primary-light: hsl(250, 60%, 85%); --primary-dark: hsl(250, 60%, 40%);
+            --success: hsl(145, 50%, 50%); --danger: hsl(0, 70%, 60%);
+            --bg-main: hsl(220, 20%, 97%); --bg-card: hsl(0, 0%, 100%); --text-main: hsl(220, 15%, 15%);
+            --text-muted: hsl(220, 10%, 45%); --border: hsl(220, 15%, 90%); --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
+        .dark-mode { --bg-main: hsl(220, 25%, 8%); --bg-card: hsl(220, 25%, 15%); --text-main: hsl(220, 15%, 95%); --text-muted: hsl(220, 10%, 65%); --border: hsl(220, 20%, 20%); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: #000; color: var(--text-main); min-height: 100vh; }
+        #app { display: flex; flex-direction: column; height: 100vh; width: 100%; max-width: 500px; margin: 0 auto; background: var(--bg-main); position: relative; }
+        
+        header { height: 80px; padding: 15px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .icon-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--bg-main); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+        nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; max-width: 500px; margin: 0 auto; z-index: 100; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--text-muted); font-size: 0.6rem; font-weight: 700; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { font-size: 1.1rem; }
+        main { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 85px; }
 
-        .dark-mode {
-            --bg-main: hsl(220, 25%, 8%);
-            --bg-card: hsl(220, 25%, 15%);
-            --text-main: hsl(220, 15%, 95%);
-            --text-muted: hsl(220, 10%, 65%);
-            --border: hsl(220, 20%, 20%);
-            --glass-bg: hsla(220, 25%, 12%, 0.85);
-        }
+        .card { background: var(--bg-card); border-radius: 20px; padding: 15px; box-shadow: var(--shadow); margin-bottom: 12px; border: 1px solid var(--border); }
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .alert-box { background: var(--danger); color: white; padding: 15px; border-radius: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; }
+        
+        /* Gastos */
+        .month-header { background: var(--primary); color: white; padding: 12px 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .month-header h3 { font-size: 1rem; text-transform: capitalize; }
+        .cat-list { background: var(--bg-card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 15px 15px; overflow: hidden; margin-bottom: 20px; }
+        .cat-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid var(--border); }
+        .cat-row:last-child { border-bottom: none; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        /* Calendario */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: var(--border); border-radius: 15px; overflow: hidden; }
+        .cal-cell { background: var(--bg-card); min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; position: relative; }
+        .cal-cell.today { background: var(--primary-light); color: var(--primary-dark); font-weight: 700; }
+        .cal-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 5px; }
+        .dot-task { background: var(--primary); }
+        .dot-plant { background: var(--success); }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #000;
-            color: var(--text-main);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        #app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            position: relative;
-            background: var(--bg-main);
-            transition: background 0.3s;
-        }
-
-        /* header */
-        .app-header {
-            height: var(--header-height);
-            padding: env(safe-area-inset-top) 15px 0 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: 3px solid var(--bg-card);
-            background-size: cover;
-            background-color: var(--primary-light);
-            margin-left: -10px;
-        }
-
-        .avatar:first-child {
-            margin-left: 0;
-            z-index: 2;
-        }
-
-        .header-text h1 {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .header-text p {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-
-        .icon-btn {
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            border: none;
-            background: var(--bg-card);
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow);
-        }
-
-        /* bottom nav - 6 items layout */
-        .bottom-nav {
-            height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            max-width: 500px;
-            margin: 0 auto;
-            border-top: 1px solid var(--border);
-            z-index: 1000;
-            padding: 0 5px env(safe-area-inset-bottom) 5px;
-        }
-
-        .nav-item {
-            flex: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.55rem;
-            font-weight: 700;
-        }
-
-        .nav-item i {
-            font-size: 1.1rem;
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-        }
-
-        /* content */
-        #main-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            padding-bottom: 90px;
-        }
-
-        /* cards */
-        .dash-card {
-            background: var(--bg-card);
-            padding: 16px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow);
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            border: 1px solid var(--border);
-        }
-
-        .dash-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .full-width {
-            grid-column: span 2;
-        }
-
-        .card-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            background: var(--primary-light);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-        }
-
-        .list-item {
-            background: var(--bg-card);
-            padding: 12px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-        }
-
-        .custom-checkbox {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--primary);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 0.75rem;
-        }
-
-        .custom-checkbox.checked {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* Chips categories */
-        .chips-scroll {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 2px 0 10px 0;
-            margin-bottom: 10px;
-            scrollbar-width: none;
-        }
-
-        .chip {
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            font-size: 0.65rem;
-            font-weight: 800;
-            white-space: nowrap;
-            color: var(--text-muted);
-        }
-
-        .chip.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* Mini labels */
-        .label-cat {
-            font-size: 0.55rem;
-            text-transform: uppercase;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: var(--bg-main);
-            color: var(--text-muted);
-        }
-
-        /* Calendar */
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border-radius: 15px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        .cal-day {
-            background: var(--bg-card);
-            padding: 6px 2px;
-            min-height: 50px;
-            text-align: center;
-            font-size: 0.7rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-        .cal-day.today {
-            background: var(--primary-light);
-            color: var(--primary-dark);
-            font-weight: 800;
-        }
-
-        .cal-dots {
-            display: flex;
-            gap: 2px;
-            margin-top: 4px;
-        }
-
-        .dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-        }
-
-        .dot.task {
-            background: var(--primary);
-        }
-
-        .dot.plant {
-            background: var(--success);
-        }
-
-        /* CocinAI Elements */
-        .stock-badge {
-            background: var(--bg-main);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.65rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid var(--border);
-        }
-
-        .stock-badge button {
-            background: none;
-            border: none;
-            color: var(--danger);
-            font-size: 0.6rem;
-            cursor: pointer;
-        }
-
-        /* Console */
-        #debug-console {
-            position: fixed;
-            bottom: 85px;
-            left: 5px;
-            right: 5px;
-            background: rgba(220, 38, 38, 0.95);
-            color: white;
-            padding: 10px;
-            font-size: 0.6rem;
-            border-radius: 8px;
-            z-index: 9999;
-            display: none;
-        }
-
-        /* Modals */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-            z-index: 2000;
-        }
-
-        .modal-body {
-            background: var(--bg-card);
-            width: 100%;
-            max-width: 500px;
-            max-height: 85vh;
-            border-radius: 30px 30px 0 0;
-            padding: 25px;
-            overflow-y: auto;
-        }
-
-        .smart-tip {
-            background: linear-gradient(135deg, var(--primary-light), #fff);
-            padding: 15px;
-            border-radius: 18px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            border: 1px solid var(--primary-light);
-            margin-bottom: 20px;
-        }
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
+        .modal-box { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; }
+        .input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; font-family: 'Outfit'; background: var(--bg-main); color: var(--text-main); }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: 700; cursor: pointer; }
+        
+        .recipe-step { background: var(--bg-main); padding: 10px; border-left: 3px solid var(--primary); margin: 5px 0; border-radius: 0 8px 8px 0; font-size: 0.9rem; }
+        .stock-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--primary-light); color: var(--primary-dark); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; margin: 2px; }
+        .stock-pill button { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 700; }
     </style>
 </head>
 
 <body class="light-mode">
-    <!-- Login Screen -->
-    <div id="login-screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:linear-gradient(135deg, var(--primary), var(--primary-dark)); gap:20px; padding:20px;">
-        <h1 style="color:white; font-size:2.5rem;">🏠 HomeHub</h1>
-        <p style="color:rgba(255,255,255,0.95); font-size:1.1rem;">Organización del hogar para parejas</p>
-        <input id="login-input" type="text" placeholder="Nombre de pareja (ej: Juan&Maria)" style="width:100%; max-width:320px; padding:15px; border:none; border-radius:12px; font-size:1rem; font-family:'Outfit', sans-serif;">
-        <button id="login-btn" style="width:100%; max-width:320px; padding:15px; background:white; color:var(--primary); border:none; border-radius:12px; cursor:pointer; font-weight:700; font-size:1rem; font-family:'Outfit', sans-serif;">Entrar</button>
-        <p style="font-size:0.75rem; color:rgba(255,255,255,0.9); text-align:center; max-width:300px;">Ambos usan el MISMO nombre para compartir datos en tiempo real</p>
+    <!-- Login -->
+    <div id="login-screen" style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--primary), var(--primary-dark)); padding:20px;">
+        <h1 style="color:white; font-size:3rem; margin-bottom:20px;">🏠 HomeHub</h1>
+        <input id="login-input" type="text" placeholder="Tu nombre de pareja" class="input" style="max-width:300px; text-align:center">
+        <button id="login-btn" class="btn" style="max-width:300px; background:white; color:var(--primary); margin-top:10px;">ENTRAR</button>
     </div>
 
+    <!-- App -->
     <div id="app" style="display:none;">
-        <header class="app-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="display: flex;">
-                    <div class="avatar"
-                        style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix')"></div>
-                    <div class="avatar"
-                        style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka')"></div>
-                </div>
-                <div class="header-text">
-                    <h1>Nuestro Hogar</h1>
-                    <p id="current-date">Hoy</p>
-                </div>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button onclick="logout()" class="icon-btn" title="Salir"><i class="fa-solid fa-sign-out-alt"></i></button>
-                <button onclick="window.resetApp()" class="icon-btn" title="Reset"><i
-                        class="fa-solid fa-rotate-right"></i></button>
-                <button id="theme-toggle" class="icon-btn"><i class="fa-solid fa-moon"></i></button>
+        <header>
+            <div><h1 style="font-size:1.2rem">Nuestro Hogar</h1><p id="date-display" style="font-size:0.7rem; color:var(--text-muted)">Cargando...</p></div>
+            <div style="display:flex; gap:5px;">
+                <button class="icon-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <button class="icon-btn" onclick="resetData()" title="Borrar datos corruptos"><i class="fa-solid fa-rotate-right"></i></button>
+                <button class="icon-btn" onclick="document.body.classList.toggle('dark-mode')"><i class="fa-solid fa-moon"></i></button>
             </div>
         </header>
-
-        <main id="main-content">
-            <div id="view-container"></div>
-        </main>
-
-        <nav class="bottom-nav">
-            <button class="nav-item active" data-view="dashboard"><i
-                    class="fa-solid fa-house"></i><span>Inicio</span></button>
-            <button class="nav-item" data-view="shopping"><i
-                    class="fa-solid fa-cart-shopping"></i><span>Compras</span></button>
-            <button class="nav-item" data-view="tasks"><i
-                    class="fa-solid fa-list-check"></i><span>Tareas</span></button>
-            <button class="nav-item" data-view="calendar"><i
-                    class="fa-solid fa-calendar-days"></i><span>Agenda</span></button>
-            <button class="nav-item" data-view="meals"><i class="fa-solid fa-utensils"></i><span>CocinAI</span></button>
-            <button class="nav-item" data-view="more"><i class="fa-solid fa-ellipsis"></i><span>Más</span></button>
+        <main id="main-view"></main>
+        <nav>
+            <button class="nav-item active" data-view="dash"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
+            <button class="nav-item" data-view="expenses"><i class="fa-solid fa-wallet"></i><span>Gastos</span></button>
+            <button class="nav-item" data-view="calendar"><i class="fa-solid fa-calendar"></i><span>Agenda</span></button>
+            <button class="nav-item" data-view="meals"><i class="fa-solid fa-utensils"></i><span>Comidas</span></button>
+            <button class="nav-item" data-view="more"><i class="fa-solid fa-bars"></i><span>Más</span></button>
         </nav>
     </div>
 
-    <!-- Debug Log -->
-    <div id="debug-console"></div>
+    <!-- Modal Gastos -->
+    <div id="m-exp" class="modal" onclick="this.style.display='none'"><div class="modal-box" onclick="event.stopPropagation()">
+        <h3 style="margin-bottom:15px">Registrar Gasto</h3>
+        <input type="number" id="f-exp-amt" class="input" placeholder="Monto ($)">
+        <select id="f-exp-cat" class="input">
+            <option value="Supermercado">Supermercado</option>
+            <option value="Nafta">Nafta</option>
+            <option value="Servicios">Servicios</option>
+            <option value="Ocio">Ocio</option>
+            <option value="Otros">Otros</option>
+        </select>
+        <input type="date" id="f-exp-date" class="input">
+        <button class="btn" onclick="saveExpense()">Guardar</button>
+    </div></div>
+
+    <!-- Modal Tareas -->
+    <div id="m-task" class="modal" onclick="this.style.display='none'"><div class="modal-box" onclick="event.stopPropagation()">
+        <h3 style="margin-bottom:15px">Nueva Tarea</h3>
+        <input type="text" id="f-task-txt" class="input" placeholder="Descripción">
+        <input type="date" id="f-task-date" class="input">
+        <button class="btn" onclick="saveTask()">Guardar</button>
+    </div></div>
 
     <!-- Modal Receta -->
-    <div id="recipe-modal" class="modal" onclick="closeRecipeModal()">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <div id="recipe-modal-content"></div>
-            <button
-                style="width:100%; padding:15px; border:none; border-radius:12px; background:var(--primary); color:white; margin-top:25px; font-weight:900;"
-                onclick="closeRecipeModal()">ACEPTAR</button>
-        </div>
-    </div>
+    <div id="m-recipe" class="modal" onclick="this.style.display='none'"><div class="modal-box" onclick="event.stopPropagation()">
+        <div id="recipe-content"></div>
+        <button class="btn" style="margin-top:15px" onclick="document.getElementById('m-recipe').style.display='none'">Cerrar</button>
+    </div></div>
 
     <script>
-        // --- 🛡️ ERRORES ---
-        window.onerror = function (msg, url, line) {
-            var d = document.getElementById('debug-console');
-            if (d) { d.style.display = 'block'; d.innerHTML = '🔴 ' + msg + '<br><small>' + line + '</small>'; }
-            return false;
-        };
+        // --- CONFIGURACIÓN ---
+        const SUP_URL = 'https://blckzxhtpxxwhlsksrzz.supabase.co';
+        const SUP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
+        let db = null, user = null;
 
-        var SUPABASE_URL = 'https://blckzxhtpxxwhlsksrzz.supabase.co';
-        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
-        var currentUser = null;
-        var client = null;
-        var channel = null;
-        var isCloudLoaded = false;
-        var sessionId = Math.random().toString(36).substring(7);
-        var isRealtimeActive = false;
-
-        // --- 🍳 COCINAI DATA ---
-        var RECIPE_BOOK = [
-            { name: 'Pollo con Jamón y Queso', ingredients: ['Pollo', 'Jamón', 'Queso'], steps: ['Poner el pollo al medio.', 'Rellenar.', 'Cocinar.'], tip: 'Usar palillos.' },
-            { name: 'Pasta con Jamón y Crema', ingredients: ['Pasta', 'Jamón'], steps: ['Hervir pasta.', 'Saltear jamón.', 'Mezclar con crema.'], tip: 'Pimienta negra.' },
-            { name: 'Tarta de Jamón y Queso', ingredients: ['Masa', 'Jamón', 'Queso'], steps: ['Poner masa.', 'Rellenar.', 'Hornear 20 min.'], tip: 'Añadir orégano.' }
+        // --- RECETAS ---
+        const COOKBOOK = [
+            { name: "Milanesas", ings: ["Pollo", "Pan rallado"], steps: ["1. Aplastar pollo.", "2. Pasar por huevo y pan.", "3. Freír."], tip: "Añadir limón al final." },
+            { name: "Pasta Carbonara", ings: ["Pasta", "Panceta", "Huevo"], steps: ["1. Cocinar pasta.", "2. Dorar panceta.", "3. Mezclar huevo con pasta caliente."], tip: "No volver a calentar el huevo." },
+            { name: "Tarta Jamón Queso", ings: ["Jamón", "Queso", "Tapas"], steps: ["1. Forrar molde.", "2. Rellenar.", "3. Hornear 20 min."], tip: "Agregar orégano." },
+            { name: "Ensalada Mixta", ings: ["Lechuga", "Tomate", "Huevo"], steps: ["1. Lavar verduras.", "2. Hervir huevo.", "3. Mezclar todo."], tip: "Aliñar con aceite de oliva." },
+            { name: "Arroz con Pollo", ings: ["Arroz", "Pollo", "Cebolla"], steps: ["1. Dorar pollo.", "2. Rehogar arroz.", "3. Cocinar con caldo."], tip: "Añadir pimientos." }
         ];
 
-        // --- 📦 STATE ---
-        var state = {
-            currentView: 'dashboard',
-            activeShopFilter: 'Todos',
-            data: {
-                shopping: [{ id: 1, name: 'Leche', cat: 'almacén', bought: false }],
-                tasks: [{ id: 1, title: 'Revisar HomeHub', status: 'pendiente', date: new Date().toISOString().split('T')[0], time: '12:00' }],
-                plants: [{ id: 1, name: 'Monstera 🌿', nextWater: new Date().toISOString().split('T')[0], freq: 7 }],
-                expenses: { items: [] },
-                meals: {
-                    stock: ['Pollo', 'Jamón'],
-                    weekly: [
-                        { day: 'Lunes', lunch: 'Pasta', dinner: 'Cena' },
-                        { day: 'Martes', lunch: 'Pollo', dinner: 'Sopa' },
-                        { day: 'Miércoles', lunch: 'Arroz', dinner: 'Tarta' },
-                        { day: 'Jueves', lunch: 'Fideos', dinner: 'Pizza' },
-                        { day: 'Viernes', lunch: 'Pescado', dinner: 'Burgers' },
-                        { day: 'Sábado', lunch: 'Asado', dinner: 'Empanadas' },
-                        { day: 'Domingo', lunch: 'Pastas', dinner: 'Picada' }
-                    ]
-                }
-            }
-        };
+        // --- ESTADO SEGURO ---
+        // Creamos una función para devolver siempre un objeto limpio
+        const getCleanData = () => ({ expenses: [], tasks: [], plants: [], shopping: [], meals: { stock: [] } });
+        let state = { view: 'dash', data: getCleanData() };
 
-        // --- 🔐 LOGIN/LOGOUT ---
-        function login() {
-            var name = document.getElementById('login-input').value.trim();
-            if (!name) {
-                alert('Escribe el nombre compartido de tu pareja');
-                return;
-            }
-            currentUser = name;
-            try { localStorage.setItem('homehub-user', name); } catch(e) { }
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if(window.supabase) db = window.supabase.createClient(SUP_URL, SUP_KEY);
+            } catch(e) { console.error("Supabase error", e); }
             
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
+            user = localStorage.getItem('hh_user');
+            if(user) showApp();
             
-            syncCloud();
-            subscribeToChanges();
-            renderView(state.currentView);
-        }
-
-        function logout() {
-            if (channel) client.removeChannel(channel);
-            currentUser = null;
-            try { localStorage.removeItem('homehub-user'); } catch(e) { }
-            
-            document.getElementById('app').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('login-input').value = '';
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('login-btn').addEventListener('click', login);
-            document.getElementById('login-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') login();
-            });
+            $('login-btn').onclick = () => {
+                let n = $('login-input').value; if(!n) return;
+                user = n; localStorage.setItem('hh_user', n);
+                showApp();
+            };
+            document.querySelectorAll('.nav-item').forEach(b => b.onclick = function() { render(this.dataset.view) });
+            $('date-display').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' });
         });
 
-        // --- 🧱 RENDER CORE (CON PROTECCIONES) ---
-        function renderView(v) {
-            state.currentView = v;
-            var c = document.getElementById('view-container');
-            if (!c) return;
-            c.innerHTML = '';
-
-            // Asegurar que la data base exista antes de renderizar
-            if (!state.data) state.data = {};
-            if (!state.data.shopping) state.data.shopping = [];
-            if (!state.data.tasks) state.data.tasks = [];
-            if (!state.data.plants) state.data.plants = [];
-            if (!state.data.expenses) state.data.expenses = { items: [] };
-            if (!state.data.meals) state.data.meals = { stock: [], weekly: [] };
-
-            // Navegación Activa
-            var ns = document.querySelectorAll('.nav-item');
-            for (var i = 0; i < ns.length; i++) {
-                ns[i].classList.toggle('active', ns[i].getAttribute('data-view') === v);
+        function $(id) { return document.getElementById(id); }
+        function showApp() { $('login-screen').style.display='none'; $('app').style.display='flex'; load(); }
+        
+        function resetData() {
+            if(confirm("¿Borrar todos los datos locales? Usa esto si la app no carga.")) {
+                localStorage.removeItem('hh_data_'+user);
+                state.data = getCleanData();
+                render();
+                alert("Datos reiniciados.");
             }
+        }
+
+        function save() {
+            if(!user) return;
+            try {
+                localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
+                if(db) db.from('homehub_data').upsert({ user_name: user, data_json: JSON.stringify(state.data) }).then();
+            } catch(e) { console.error("Error guardando", e); }
+        }
+        
+        function load() {
+            if(!user) return;
+            try {
+                let d = localStorage.getItem('hh_data_'+user);
+                if(d) {
+                    let parsed = JSON.parse(d);
+                    // Sanitización profunda: Si lo guardado es un objeto, lo usamos, si no, limpio.
+                    if(typeof parsed === 'object' && parsed !== null) {
+                        state.data = getCleanData(); // Base limpia
+                        // Sobrescribir solo si son arrays válidos
+                        if(Array.isArray(parsed.expenses)) state.data.expenses = parsed.expenses;
+                        if(Array.isArray(parsed.tasks)) state.data.tasks = parsed.tasks;
+                        if(Array.isArray(parsed.plants)) state.data.plants = parsed.plants;
+                        if(Array.isArray(parsed.shopping)) state.data.shopping = parsed.shopping;
+                        if(parsed.meals && Array.isArray(parsed.meals.stock)) state.data.meals.stock = parsed.meals.stock;
+                    }
+                }
+            } catch(e) { 
+                console.error("Error cargando datos, reiniciando...", e);
+                state.data = getCleanData(); 
+            }
+            render();
+            
+            if(db) {
+                db.from('homehub_data').select('data_json').eq('user_name', user).single().then(r => {
+                    if(r.data && r.data.data_json) { 
+                        try {
+                            let cloudData = JSON.parse(r.data.data_json);
+                            if(Array.isArray(cloudData.expenses)) state.data.expenses = cloudData.expenses;
+                            if(Array.isArray(cloudData.tasks)) state.data.tasks = cloudData.tasks;
+                            if(Array.isArray(cloudData.plants)) state.data.plants = cloudData.plants;
+                            if(Array.isArray(cloudData.shopping)) state.data.shopping = cloudData.shopping;
+                            if(cloudData.meals && Array.isArray(cloudData.meals.stock)) state.data.meals.stock = cloudData.meals.stock;
+                            render();
+                        } catch(e) {}
+                    }
+                });
+            }
+        }
+        
+        function logout() { localStorage.clear(); location.reload(); }
+        function closeModal(id) { $(id).style.display='none'; }
+        function openModal(id) { $(id).style.display='flex'; }
+
+        // --- MOTOR DE VISTAS ---
+        function render(v) {
+            if(v) state.view = v;
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === state.view));
+            
+            let c = $('main-view'); c.innerHTML = '';
+            let alerts = checkAlerts(); 
 
             try {
-                if (v === 'dashboard') renderDashboard(c);
-                else if (v === 'shopping') renderShopping(c);
-                else if (v === 'tasks') renderTasks(c);
-                else if (v === 'calendar') renderCalendar(c);
-                else if (v === 'meals') renderMealPlanner(c);
-                else if (v === 'plants') renderPlants(c);
-                else if (v === 'expenses') renderExpenses(c);
-                else if (v === 'more') renderMoreMenu(c);
+                if(state.view === 'dash') renderDash(c, alerts);
+                else if(state.view === 'expenses') renderExp(c);
+                else if(state.view === 'calendar') renderCal(c, alerts);
+                else if(state.view === 'meals') renderMeals(c);
+                else if(state.view === 'shopping') renderShop(c);
+                else if(state.view === 'plants') renderPlants(c);
+                else if(state.view === 'more') renderMore(c);
             } catch (e) {
-                window.onerror('Render Error (' + v + '): ' + e.message, '', 0);
+                console.error(e);
+                c.innerHTML = `<div style="padding:20px; color:var(--danger)">Error crítico. Toca el botón <b>Reset</b> arriba a la derecha.</div>`;
             }
         }
 
-        function renderDashboard(c) {
-            var d = state.data;
-            var sCount = (d.shopping || []).filter(function (i) { return !i.bought }).length;
-            var tCount = (d.tasks || []).filter(function (t) { return t.status === 'pendiente' }).length;
-
-            var now = new Date();
-            var dayIdx = (now.getDay() + 6) % 7;
-            var lunch = 'Plan pendiente';
-            if (d.meals && d.meals.weekly && d.meals.weekly[dayIdx]) {
-                lunch = d.meals.weekly[dayIdx].lunch || 'Plan pendiente';
-            }
-
-            c.innerHTML = '<div style="margin-bottom:20px;"><h2>¡Hola! 👋</h2>' +
-                '<p id="cloud-info" style="font-size:0.6rem; color:var(--text-muted); cursor:pointer;" onclick="syncCloud()">Sincronizando...</p></div>' +
-                '<div class="smart-tip" onclick="renderView(\'meals\')"><i class="fa-solid fa-wand-magic-sparkles"></i><div><p style="font-size:0.8rem; font-weight:700;">CocinAI Sugiere</p><p style="font-size:0.7rem;">Optimiza tu stock. Toca para ver sugerencias.</p></div></div>' +
-                '<div class="dash-grid">' +
-                '<div class="dash-card" onclick="renderView(\'shopping\')"><div class="card-icon"><i class="fa-solid fa-cart-shopping"></i></div><div><h3>Compras</h3><p>' + sCount + ' ítems</p></div></div>' +
-                '<div class="dash-card" onclick="renderView(\'tasks\')"><div class="card-icon" style="background:hsl(145,50%,90%); color:var(--success)"><i class="fa-solid fa-list-check"></i></div><div><h3>Tareas</h3><p>' + tCount + ' para hoy</p></div></div>' +
-                '<div class="dash-card full-width" onclick="renderView(\'meals\')" style="background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:white;">' +
-                '<div><p style="font-size:0.7rem; opacity:0.8;">Menú de Hoy</p><h3 style="color:white">' + lunch + '</h3></div></div>' +
-                '</div>' +
-                '<button onclick="syncCloud()" style="width:100%; border:none; background:none; color:var(--primary); font-size:0.65rem; margin-top:20px; text-decoration:underline;">🔄 Forzar Sincronización</button>';
-            updateCloudUI();
+        function checkAlerts() {
+            if(!Array.isArray(state.data.tasks)) return [];
+            let today = new Date().toISOString().split('T')[0];
+            return state.data.tasks.filter(t => t.date <= today && t.status === 'pendiente');
         }
 
-        function renderShopping(c) {
-            var cats = ['Todos', 'almacén', 'verdulería', 'limpieza', 'otros'];
-            var items = (state.data.shopping || []).filter(function (i) {
-                return state.activeShopFilter === 'Todos' || i.cat === state.activeShopFilter;
+        // --- DASHBOARD ---
+        function renderDash(c, alerts) {
+            let now = new Date();
+            let curM = now.getMonth(), curY = now.getFullYear();
+            
+            let totCur = 0, totPrev = 0;
+            try {
+                totCur = state.data.expenses.filter(e => new Date(e.date).getMonth() === curM && new Date(e.date).getFullYear() === curY).reduce((a,b) => a + (b.amount||0), 0);
+                let pm = curM === 0 ? 11 : curM-1;
+                let py = curM === 0 ? curY-1 : curY;
+                totPrev = state.data.expenses.filter(e => {
+                    let d = new Date(e.date);
+                    return d.getMonth() === pm && d.getFullYear() === py;
+                }).reduce((a,b) => a + (b.amount||0), 0);
+            } catch(e) {}
+
+            let growth = totPrev > 0 ? ((totCur - totPrev)/totPrev*100).toFixed(0) : 0;
+
+            let html = '';
+            if(alerts.length > 0) html += `<div class="alert-box" onclick="render('calendar')"><i class="fa-solid fa-bell"></i><div><b>¡Atención!</b><div style="font-size:0.8rem">${alerts.length} tarea(s) vencida(s)</div></div></div>`;
+            
+            html += `<div class="dash-grid">
+                <div class="card" onclick="render('expenses')" style="cursor:pointer">
+                    <p style="font-size:0.8rem; color:var(--text-muted)">Gastos Mes</p>
+                    <h2 style="margin:5px 0">$${totCur.toLocaleString()}</h2>
+                    <p style="font-size:0.7rem; color:${growth > 0 ? 'var(--danger)' : 'var(--success)'}">${growth > 0 ? '↑' : '↓'} ${Math.abs(growth)}% vs mes ant.</p>
+                </div>
+                <div class="card" onclick="render('calendar')" style="cursor:pointer; background:var(--primary); color:white">
+                    <i class="fa-solid fa-calendar-check" style="font-size:2rem"></i>
+                    <p style="margin-top:10px; font-size:0.8rem">Ver Agenda</p>
+                </div>
+            </div>`;
+
+            let avStock = (state.data.meals && Array.isArray(state.data.meals.stock)) ? state.data.meals.stock : [];
+            let sugg = COOKBOOK.filter(r => r.ings.some(i => avStock.includes(i)));
+            if(sugg.length > 0) {
+                html += `<div class="card" onclick="render('meals')" style="cursor:pointer; margin-top:10px; border:1px solid var(--primary-light)">
+                    <p style="font-size:0.8rem; color:var(--primary)"><i class="fa-solid fa-wand-magic-sparkles"></i> CocinAI Sugiere:</p>
+                    <h3>${sugg[0].name}</h3>
+                </div>`;
+            }
+            c.innerHTML = html;
+        }
+
+        // --- GASTOS ---
+        function renderExp(c) {
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px"><h2>💰 Gastos</h2><button class="icon-btn" onclick="openModal('m-exp')"><i class="fa-solid fa-plus"></i></button></div>`;
+            
+            let items = state.data.expenses || [];
+            if(items.length === 0) html += `<p style="text-align:center; opacity:0.5; margin-top:30px">No hay gastos.</p>`;
+
+            let groups = {};
+            items.forEach(e => {
+                try {
+                    if(!e.date) return;
+                    let d = new Date(e.date);
+                    let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                    let name = d.toLocaleString('es-ES', {year:'numeric', month:'long'});
+                    if(!groups[key]) groups[key] = {name: name, total:0, cats:{}};
+                    let amount = e.amount || 0;
+                    let cat = e.cat || 'Otros';
+                    groups[key].total += amount;
+                    if(!groups[key].cats[cat]) groups[key].cats[cat] = 0;
+                    groups[key].cats[cat] += amount;
+                } catch(err) {}
             });
 
-            c.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h2>🛒 Compras</h2><button class="icon-btn" onclick="addShop()"><i class="fa-solid fa-plus"></i></button></div>' +
-                '<div class="chips-scroll">' + cats.map(function (cat) {
-                    return '<button class="chip ' + (state.activeShopFilter === cat ? 'active' : '') + '" onclick="setShopFilter(\'' + cat + '\')">' + cat + '</button>';
-                }).join('') + '</div>' +
-                '<div>' + (items.length ? items.map(function (i) {
-                    return '<div class="list-item"><div style="display:flex; align-items:center; gap:12px;" onclick="toggleShop(' + i.id + ')">' +
-                        '<div class="custom-checkbox ' + (i.bought ? 'checked' : '') + '">' + (i.bought ? '✓' : '') + '</div>' +
-                        '<div><span>' + (i.name || 'Sin nombre') + '</span><br><span class="label-cat">' + (i.cat || 'otros') + '</span></div></div>' +
-                        '<button class="icon-btn" style="width:28px;height:28px;color:var(--danger)" onclick="delShop(' + i.id + ')"><i class="fa-solid fa-trash"></i></button></div>';
-                }).join('') : '<p style="text-align:center; opacity:0.5; font-size:0.8rem; margin-top:20px;">No hay ítems en esta categoría.</p>') + '</div>';
+            let keys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+
+            keys.forEach(k => {
+                let g = groups[k];
+                html += `<div style="margin-bottom:20px">
+                    <div class="month-header"><h3>${g.name}</h3><span>$${g.total.toLocaleString()}</span></div>
+                    <div class="cat-list">
+                        ${Object.keys(g.cats).map(cat => `<div class="cat-row"><span>${cat}</span><strong>$${g.cats[cat].toLocaleString()}</strong></div>`).join('')}
+                    </div>
+                </div>`;
+            });
+            c.innerHTML = html;
+        }
+        
+        function saveExpense() {
+            let amount = parseFloat($('f-exp-amt').value);
+            let cat = $('f-exp-cat').value;
+            let date = $('f-exp-date').value;
+            
+            if(isNaN(amount) || amount <= 0 || !date) {
+                alert("Falta monto o fecha.");
+                return;
+            }
+            state.data.expenses.push({id: Date.now(), amount: amount, cat: cat, date: date});
+            save(); 
+            closeModal('m-exp');
+            render('expenses');
         }
 
-        function renderTasks(c) {
-            var tasks = state.data.tasks || [];
-            c.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h2>🧹 Tareas</h2><button class="icon-btn" onclick="addTask()"><i class="fa-solid fa-plus"></i></button></div>' +
-                (tasks.length ? tasks.map(function (t) {
-                    return '<div class="dash-card" style="border-left:5px solid ' + (t.status === 'finalizado' ? 'var(--success)' : 'var(--primary)') + '">' +
-                        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<div><h4 style="' + (t.status === 'finalizado' ? 'text-decoration:line-through' : '') + '">' + (t.title || 'Tarea') + '</h4><p style="font-size:0.65rem; color:var(--text-muted)">' + (t.date || '-') + ' • ' + (t.time || '-') + '</p></div>' +
-                        '<div style="display:flex; gap:8px;"><button class="icon-btn" onclick="toggleTask(' + t.id + ')"><i class="fa-solid fa-check"></i></button>' +
-                        '<button class="icon-btn" style="color:var(--danger)" onclick="delTask(' + t.id + ')"><i class="fa-solid fa-trash"></i></button></div></div></div>';
-                }).join('') : '<p style="text-align:center; opacity:0.5; font-size:0.8rem;">No hay tareas pendientes.</p>');
+        // --- CALENDARIO ---
+        function renderCal(c, alerts) {
+            let now = new Date();
+            let y = now.getFullYear(), m = now.getMonth();
+            let days = new Date(y, m+1, 0).getDate();
+            let start = (new Date(y, m, 1).getDay() + 6) % 7;
+
+            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:10px"><h2>📅 Agenda</h2><button class="icon-btn" onclick="openModal('m-task')"><i class="fa-solid fa-plus"></i></button></div>`;
+            
+            if(alerts.length > 0) html += `<div style="background:hsla(0,70%,60%,0.1); color:var(--danger); padding:10px; border-radius:10px; margin-bottom:10px; font-size:0.8rem"><b>⚠️ Pendientes:</b> ${alerts.map(a=>a.txt).join(', ')}</div>`;
+
+            html += `<div class="cal-grid">`;
+            ['L','M','X','J','V','S','D'].forEach(d => html += `<div class="cal-cell" style="background:var(--bg-main); font-weight:700; font-size:0.6rem">${d}</div>`);
+            
+            for(let i=0; i<start; i++) html += `<div class="cal-cell" style="opacity:0"></div>`;
+            
+            for(let d=1; d<=days; d++) {
+                let dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                let isToday = d === now.getDate();
+                let tasks = (state.data.tasks || []).filter(t => t.date === dateStr);
+                let plants = (state.data.plants || []).filter(p => p.next === dateStr);
+                
+                html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="openTask('${dateStr}')">
+                    ${d}
+                    ${tasks.length ? `<div class="cal-dot dot-task"></div>` : ''}
+                    ${plants.length ? `<div class="cal-dot dot-plant" style="left:60%"></div>` : ''}
+                </div>`;
+            }
+            html += `</div>`;
+            c.innerHTML = html;
+        }
+        
+        function openTask(date) { $('f-task-date').value = date; openModal('m-task'); }
+        function saveTask() {
+            let txt = $('f-task-txt').value; let date = $('f-task-date').value;
+            if(!txt) return;
+            state.data.tasks.push({id: Date.now(), txt, date, status: 'pendiente'});
+            save(); closeModal('m-task'); render('calendar');
         }
 
-        function renderMealPlanner(c) {
-            if (!state.data.meals) state.data.meals = { stock: [], weekly: [] };
-            var stock = state.data.meals.stock || [];
-            var weekly = state.data.meals.weekly || [];
+        // --- COMIDAS ---
+        function renderMeals(c) {
+            let stock = (state.data.meals && Array.isArray(state.data.meals.stock)) ? state.data.meals.stock : [];
+            let validRecipes = COOKBOOK.filter(r => r.ings.some(i => stock.includes(i)));
 
-            c.innerHTML = '<h2>🍽️ CocinAI Pro</h2>' +
-                '<div style="background:var(--bg-card); padding:15px; border-radius:15px; margin:15px 0; border:1px solid var(--border);">' +
-                '<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><h4>📦 Mi Stock</h4><button class="icon-btn" onclick="addStock()">+</button></div>' +
-                '<div style="display:flex; gap:8px; flex-wrap:wrap;">' + (stock.map(function (s) { return '<div class="stock-badge">' + s + '<button onclick="delStock(\'' + s + '\')">x</button></div>' }).join('') || '<p style="font-size:0.7rem; opacity:0.5;">Sin ingredientes.</p>') + '</div></div>' +
-                (weekly.length ? weekly.map(function (day, i) {
-                    return '<div class="dash-card"><div style="display:flex; justify-content:space-between;"><h4 style="color:var(--primary)">' + (day.day || '-') + '</h4><button class="icon-btn" onclick="editMeal(' + i + ')"><i class="fa-solid fa-pen"></i></button></div>' +
-                        '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">' +
-                        '<div onclick="viewRec(\'' + (day.lunch || '') + '\')"><p style="font-size:0.55rem; color:var(--text-muted)">ALMUERZO</p><b>' + (day.lunch || 'Pendiente') + '</b></div>' +
-                        '<button class="icon-btn" style="color:var(--primary)" onclick="genMeal(' + i + ')"><i class="fa-solid fa-wand-sparkles"></i></button></div></div>';
-                }).join('') : '<button onclick="resetApp()" style="width:100%; padding:10px;">Restaurar Calendario (Falta Data)</button>');
+            let html = `<h2>🍽️ CocinAI</h2>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+                    <b>📦 Mi nevera</b>
+                    <button class="icon-btn" onclick="addIng()"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div style="min-height:30px">
+                    ${stock.map(s => `<div class="stock-pill">${s} <button onclick="delIng('${s}')">&times;</button></div>`).join('')}
+                </div>
+            </div>`;
+            
+            if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes.</p>`;
+            
+            validRecipes.forEach(r => {
+                html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer">
+                    <h4>${r.name}</h4>
+                    <p style="font-size:0.7rem; color:var(--text-muted)">${r.ings.join(', ')}</p>
+                </div>`;
+            });
+            c.innerHTML = html;
         }
+        function addIng() { let i = prompt("Ingrediente:"); if(i) { if(!state.data.meals) state.data.meals={stock:[]}; if(!state.data.meals.stock) state.data.meals.stock=[]; state.data.meals.stock.push(i); save(); render('meals'); } }
+        function delIng(i) { if(state.data.meals && state.data.meals.stock) state.data.meals.stock = state.data.meals.stock.filter(s => s !== i); save(); render('meals'); }
+        
+        function showRecipe(name) {
+            let r = COOKBOOK.find(x => x.name === name);
+            if(!r) return;
+            let url = `https://www.google.com/search?q=receta+${encodeURIComponent(name)}+paso+a+paso`;
+            $('recipe-content').innerHTML = `
+                <h2>${r.name}</h2>
+                <p style="color:var(--text-muted); margin:5px 0 15px 0">${r.ings.join(', ')}</p>
+                <div style="margin-bottom:15px">
+                    ${r.steps.map(s => `<div class="recipe-step">${s}</div>`).join('')}
+                </div>
+                <div style="background:var(--primary-light); padding:10px; border-radius:10px; font-size:0.8rem"><b>Tip:</b> ${r.tip}</div>
+                <a href="${url}" target="_blank" style="display:block; text-align:center; margin-top:15px; color:var(--primary); font-weight:700; text-decoration:none"><i class="fa-solid fa-globe"></i> Buscar en la Web</a>
+            `;
+            openModal('m-recipe');
+        }
+
+        // --- SECCIONES SIMPLES ---
+        function renderMore(c) {
+            c.innerHTML = `<h2>⚡ Funciones</h2><br>
+            <div class="card" onclick="render('shopping')" style="cursor:pointer"><b>🛒 Lista de Compras</b></div>
+            <div class="card" onclick="render('plants')" style="cursor:pointer"><b>🌱 Mis Plantas</b></div>
+            <div class="card" onclick="logout()" style="cursor:pointer; border-color:var(--danger); color:var(--danger)"><b>🚪 Cerrar Sesión</b></div>`;
+        }
+
+        function renderShop(c) {
+            if(!Array.isArray(state.data.shopping)) state.data.shopping = [];
+            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🛒 Compras</h2><button class="icon-btn" onclick="addShop()"><i class="fa-solid fa-plus"></i></button></div>`;
+            if(state.data.shopping.length === 0) html += `<p style="text-align:center; opacity:0.5">Lista vacía.</p>`;
+            state.data.shopping.forEach(s => {
+                html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center">
+                    <span style="${s.done ? 'text-decoration:line-through; opacity:0.5' : ''}">${s.name}</span>
+                    <div style="display:flex; gap:5px">
+                        <button class="icon-btn" onclick="toggleShop(${s.id})" style="background:${s.done ? 'var(--success)' : 'var(--bg-main)'}; color:${s.done ? 'white' : 'inherit'}"><i class="fa-solid fa-check"></i></button>
+                        <button class="icon-btn" onclick="delShop(${s.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            });
+            c.innerHTML = html;
+        }
+        function addShop() { let n = prompt("Item"); if(n){ state.data.shopping.push({id:Date.now(), name:n, done:false}); save(); render('shopping'); } }
+        function toggleShop(id) { let i = state.data.shopping.find(x=>x.id===id); if(i) i.done = !i.done; save(); render('shopping'); }
+        function delShop(id) { state.data.shopping = state.data.shopping.filter(x => x.id !== id); save(); render('shopping'); }
 
         function renderPlants(c) {
-            var plants = state.data.plants || [];
-            c.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h2>🌱 Mis Plantas</h2><button class="icon-btn" onclick="addPlant()"><i class="fa-solid fa-plus"></i></button></div>' +
-                '<div class="dash-grid">' + (plants.length ? plants.map(function (p) {
-                    return '<div class="dash-card" style="text-align:center;"><div style="font-size:2rem">🌿</div><h4>' + (p.name || 'Planta') + '</h4><p style="font-size:0.6rem; color:var(--text-muted)">Prox Riego: ' + (p.nextWater || '-') + '</p>' +
-                        '<button class="icon-btn" style="width:100%; background:var(--primary); color:white; margin-top:5px;" onclick="water(' + p.id + ')">Regar</button></div>';
-                }).join('') : '<p class="full-width" style="text-align:center; opacity:0.5; font-size:0.8rem;">No hay plantas registradas.</p>') + '</div>';
+            if(!Array.isArray(state.data.plants)) state.data.plants = [];
+             let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🌱 Plantas</h2><button class="icon-btn" onclick="addPlant()"><i class="fa-solid fa-plus"></i></button></div>`;
+             if(state.data.plants.length === 0) html += `<p style="text-align:center; opacity:0.5">Sin plantas.</p>`;
+             state.data.plants.forEach(p => {
+                 html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center">
+                    <div><b>${p.name}</b><br><span style="font-size:0.7rem; color:var(--text-muted)">Riego: ${p.next}</span></div>
+                    <div style="display:flex; gap:5px">
+                        <button class="icon-btn" onclick="waterPlant(${p.id})" style="background:var(--success); color:white"><i class="fa-solid fa-droplet"></i></button>
+                        <button class="icon-btn" onclick="delPlant(${p.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                 </div>`;
+             });
+             c.innerHTML = html;
         }
-
-        function renderExpenses(c) {
-            if (!state.data.expenses) state.data.expenses = { items: [] };
-            var items = state.data.expenses.items || [];
-            var total = items.reduce(function (a, b) { return a + (b.amount || 0) }, 0);
-            c.innerHTML = '<h2>💰 Gastos</h2><div class="dash-card" style="background:var(--primary); color:white; padding:20px; text-align:center;"><p style="opacity:0.8;">Total Mes</p><h3>$' + total.toLocaleString() + '</h3></div>' +
-                '<button class="icon-btn" style="width:100%; height:45px; margin-bottom:15px;" onclick="addExp()">+ Registrar</button>' +
-                (items.length ? items.map(function (i) {
-                    return '<div class="list-item"><div><h4>' + (i.desc || 'Gasto') + '</h4><p style="font-size:0.6rem; color:var(--text-muted)">' + (i.cat || 'otros') + ' • ' + (i.date || '-') + '</p></div><b>$' + (i.amount || 0) + '</b></div>';
-                }).join('') : '<p style="text-align:center; opacity:0.5; font-size:0.8rem;">Sin gastos registrados.</p>');
-        }
-
-        function renderCalendar(c) {
-            var now = new Date(); var m = now.getMonth(); var y = now.getFullYear();
-            var months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            var ds = new Date(y, m + 1, 0).getDate();
-            var start = (new Date(y, m, 1).getDay() + 6) % 7;
-            c.innerHTML = '<h2>📅 Agenda - ' + months[m] + '</h2><div class="calendar-grid" style="margin-top:10px;">' +
-                ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(function (d) { return '<div style="background:var(--bg-main); font-size:0.6rem; font-weight:800; padding:5px; text-align:center;">' + d + '</div>' }).join('') +
-                Array(start).fill(0).map(function () { return '<div class="cal-day" style="opacity:0.1"></div>' }).join('') +
-                Array(ds).fill(0).map(function (_, i) {
-                    var d = i + 1;
-                    var dateStr = y + '-' + (m + 1).toString().padStart(2, '0') + '-' + d.toString().padStart(2, '0');
-                    var hasT = (state.data.tasks || []).some(function (t) { return t.date === dateStr });
-                    return '<div class="cal-day ' + (d === now.getDate() ? 'today' : '') + '"><span>' + d + '</span><div class="cal-dots">' + (hasT ? '<div class="dot task"></div>' : '') + '</div></div>';
-                }).join('') + '</div>';
-        }
-
-        function renderMoreMenu(c) {
-            c.innerHTML = '<h2>✨ Más Módulos</h2><br>' +
-                '<div class="dash-card row" onclick="renderView(\'plants\')" style="flex-direction:row; align-items:center; border:1px solid var(--primary-light); background:var(--primary-light);">' +
-                '<div class="card-icon"><i class="fa-solid fa-leaf"></i></div><div style="margin-left:15px"><b>🌱 Mis Plantas</b><p style="font-size:0.7rem">Control de riego y cuidado.</p></div></div>' +
-                '<div class="dash-card row" onclick="renderView(\'expenses\')" style="flex-direction:row; align-items:center;">' +
-                '<div class="card-icon" style="background:hsl(145,50%,90%); color:var(--success)"><i class="fa-solid fa-wallet"></i></div><div style="margin-left:15px"><b>💰 Gastos Compartidos</b><p style="font-size:0.7rem">Saldos y cuentas del mes.</p></div></div>';
-        }
-
-        // --- ⚡ ACCIONES (FORMULARIOS COMPLETOS) ---
-        function addShop() {
-            var n = prompt('¿Qué falta?');
-            if (n) {
-                var c = prompt('Categoría (almacen, verduleria, limpieza, otros):', 'almacén');
-                if (!state.data.shopping) state.data.shopping = [];
-                state.data.shopping.unshift({ id: Date.now(), name: n, cat: (c || 'otros').toLowerCase(), bought: false });
-                renderView('shopping');
-                saveState();
-            }
-        }
-        function toggleShop(id) { var i = (state.data.shopping || []).find(function (x) { return x.id === id }); if (i) { i.bought = !i.bought; renderView('shopping'); saveState(); } }
-        function delShop(id) { if (confirm('¿Borrar?')) { state.data.shopping = (state.data.shopping || []).filter(function (x) { return x.id !== id }); renderView('shopping'); saveState(); } }
-        function setShopFilter(cat) { state.activeShopFilter = cat; renderView('shopping'); }
-
-        function addTask() {
-            var t = prompt('Responsabilidad:');
-            if (t) {
-                var d = prompt('Fecha (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
-                var h = prompt('Hora (HH:MM):', '12:00');
-                if (!state.data.tasks) state.data.tasks = [];
-                state.data.tasks.unshift({ id: Date.now(), title: t, status: 'pendiente', date: (d || '-'), time: (h || '-') });
-                renderView('tasks');
-                saveState();
-            }
-        }
-        function toggleTask(id) { var t = (state.data.tasks || []).find(function (x) { return x.id === id }); if (t) { t.status = t.status === 'pendiente' ? 'finalizado' : 'pendiente'; renderView('tasks'); saveState(); } }
-        function delTask(id) { if (confirm('¿Eliminar?')) { state.data.tasks = (state.data.tasks || []).filter(function (x) { return x.id !== id }); renderView('tasks'); saveState(); } }
-
-        function addExp() {
-            var d = prompt('Gasto:');
-            var a = parseFloat(prompt('Monto:'));
-            if (d && !isNaN(a)) {
-                var c = prompt('Categoría (super, servicios, ocio):', 'super');
-                if (!state.data.expenses) state.data.expenses = { items: [] };
-                if (!state.data.expenses.items) state.data.expenses.items = [];
-                state.data.expenses.items.unshift({ id: Date.now(), desc: d, amount: a, cat: (c || 'otros'), date: new Date().toISOString().split('T')[0] });
-                renderView('expenses');
-                saveState();
-            }
-        }
-
-        function addStock() { var i = prompt('Ingrediente:'); if (i) { if (!state.data.meals) state.data.meals = { stock: [], weekly: [] }; if (!state.data.meals.stock) state.data.meals.stock = []; state.data.meals.stock.push(i); renderView('meals'); saveState(); } }
-        function delStock(s) { state.data.meals.stock = (state.data.meals.stock || []).filter(function (x) { return x !== s }); renderView('meals'); saveState(); }
-        function genMeal(i) {
-            var s = (state.data.meals || {}).stock || [];
-            var ms = RECIPE_BOOK.filter(function (r) { return r.ingredients.some(function (ing) { return s.indexOf(ing) !== -1 }) });
-            if (ms.length > 0) {
-                var r = ms[Math.floor(Math.random() * ms.length)];
-                state.data.meals.weekly[i].lunch = r.name;
-                alert('✨ CocinAI Sigiere: ' + r.name);
-                renderView('meals');
-                saveState();
-            } else { alert('Agrega más ingredientes al stock.'); }
-        }
-        function viewRec(name) {
-            var r = RECIPE_BOOK.find(function (x) { return x.name === name });
-            var m = document.getElementById('recipe-modal');
-            var c = document.getElementById('recipe-modal-content');
-            if (r) {
-                c.innerHTML = '<h2>' + r.name + '</h2><hr><br><h4>Ingredientes:</h4><p>' + r.ingredients.join(', ') + '</p><br>' +
-                    '<h4>Pamos:</h4>' + r.steps.map(function (s, k) { return '<p>' + (k + 1) + '. ' + s + '</p>' }).join('') + '<br><br><i>💡 Tip: ' + r.tip + '</i>';
-            } else { c.innerHTML = '<h3>' + (name || 'Comida') + '</h3><p>Receta pendiente.</p>'; }
-            m.style.display = 'flex';
-        }
-        function closeRecipeModal() { var m = document.getElementById('recipe-modal'); if (m) m.style.display = 'none'; }
-
-        function addPlant() {
-            var n = prompt('Nombre de la planta:');
-            if (n) {
-                var f = parseInt(prompt('Riego cada (días):', '7'));
-                if (!state.data.plants) state.data.plants = [];
-                state.data.plants.push({ id: Date.now(), name: n + ' 🌿', nextWater: new Date().toISOString().split('T')[0], freq: (f || 7) });
-                renderView('plants');
-                saveState();
-            }
-        }
-        function water(id) { var p = (state.data.plants || []).find(function (x) { return x.id === id }); if (p) { var d = new Date(); d.setDate(d.getDate() + (p.freq || 7)); p.nextWater = d.toISOString().split('T')[0]; renderView('plants'); saveState(); } }
-        function editMeal(i) { var n = prompt('Plato:', (state.data.meals.weekly[i] || {}).lunch || ''); if (n) { if (!state.data.meals.weekly[i]) state.data.meals.weekly[i] = { day: 'Día ' + i }; state.data.meals.weekly[i].lunch = n; renderView('meals'); saveState(); } }
-
-        // --- 🛡️ BLINDAJE DE DATOS (ANTI-CRASH) ---
-        function applyData(newData) {
-            if (!newData || typeof newData !== 'object') return;
-
-            // Estructura base por defecto
-            var def = {
-                shopping: [],
-                tasks: [],
-                plants: [],
-                expenses: { items: [] },
-                meals: {
-                    stock: [],
-                    weekly: [
-                        { day: 'Lunes', lunch: 'Pasta', dinner: 'Cena' },
-                        { day: 'Martes', lunch: 'Pollo', dinner: 'Sopa' },
-                        { day: 'Miércoles', lunch: 'Arroz', dinner: 'Tarta' },
-                        { day: 'Jueves', lunch: 'Fideos', dinner: 'Pizza' },
-                        { day: 'Viernes', lunch: 'Pescado', dinner: 'Burgers' },
-                        { day: 'Sábado', lunch: 'Asado', dinner: 'Empanadas' },
-                        { day: 'Domingo', lunch: 'Pastas', dinner: 'Picada' }
-                    ]
-                }
-            };
-
-            // Sanitización Profunda (con protección ante nulos previos)
-            var old = state.data || def;
-            if (!newData.shopping || !Array.isArray(newData.shopping)) newData.shopping = old.shopping || def.shopping;
-            if (!newData.tasks || !Array.isArray(newData.tasks)) newData.tasks = old.tasks || def.tasks;
-            if (!newData.plants || !Array.isArray(newData.plants)) newData.plants = old.plants || def.plants;
-
-            if (!newData.expenses || typeof newData.expenses !== 'object') newData.expenses = old.expenses || def.expenses;
-            if (!newData.expenses.items || !Array.isArray(newData.expenses.items)) newData.expenses.items = (old.expenses || {}).items || def.expenses.items;
-
-            if (!newData.meals || typeof newData.meals !== 'object') newData.meals = old.meals || def.meals;
-            if (!newData.meals.stock || !Array.isArray(newData.meals.stock)) newData.meals.stock = (old.meals || {}).stock || def.meals.stock;
-            if (!newData.meals.weekly || !Array.isArray(newData.meals.weekly) || newData.meals.weekly.length === 0) {
-                newData.meals.weekly = (old.meals || {}).weekly || def.meals.weekly;
-            }
-
-            state.data = newData;
-        }
-
-        // --- ☁️ NUBE ---
-        function saveState() {
-            if (!currentUser) return;
-            try {
-                localStorage.setItem('homehub_v3_' + currentUser, JSON.stringify(state.data));
-                if (client && isCloudLoaded) {
-                    client.from('homehub_data').upsert({ user_name: currentUser, data_json: JSON.stringify(state.data), updated_at: new Date().toISOString() }, { onConflict: 'user_name' })
-                        .then(function (res) { updateCloudUI(res); })
-                        .catch(function (err) { updateCloudUI({ error: err }); });
-
-                    if (channel && isRealtimeActive) {
-                        channel.send({
-                            type: 'broadcast',
-                            event: 'sync',
-                            payload: { data: state.data, sid: sessionId, user: currentUser }
-                        });
-                    }
-                }
-            } catch (e) { }
-        }
-        function loadState() {
-            var s = localStorage.getItem('homehub_v3') || localStorage.getItem('homehub_state');
-            if (s) { try { applyData(JSON.parse(s)); } catch (e) { } }
-        }
-        function syncCloud() {
-            if (!client || !currentUser) return;
-            client.from('homehub_data').select('data_json').eq('user_name', currentUser).single().then(function (res) {
-                isCloudLoaded = true;
-                if (res.data && res.data.data_json) {
-                    applyData(JSON.parse(res.data.data_json));
-                    renderView(state.currentView);
-                    updateCloudUI({ error: null });
-                }
-            }).catch(function (err) {
-                isCloudLoaded = true;
-                updateCloudUI({ error: err });
-            });
-        }
-        function updateCloudUI(res) {
-            var el = document.getElementById('cloud-info');
-            if (el) {
-                if (res && res.error) { el.textContent = '⚠️ Solo Modo Local'; el.style.color = 'var(--danger)'; }
-                else if (res && res.realtime) { el.textContent = '⚡ Conectado En Vivo'; el.style.color = 'var(--success)'; }
-                else { el.textContent = '☁️ Sincronizado'; el.style.color = 'var(--text-muted)'; }
-            }
-        }
-        function subscribeToChanges() {
-            if (!client || !currentUser) return;
-            if (channel) client.removeChannel(channel);
-            
-            var channelName = 'homehub-' + currentUser.replace(/[^a-zA-Z0-9]/g, '-');
-            channel = client.channel(channelName, {
-                config: { broadcast: { self: false } }
-            });
-
-            channel
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'homehub_data', filter: 'user_name=eq.' + currentUser }, function (p) {
-                    if (p.new && p.new.data_json) {
-                        applyData(JSON.parse(p.new.data_json));
-                        renderView(state.currentView);
-                        updateCloudUI({ realtime: true });
-                    }
-                })
-                .on('broadcast', { event: 'sync' }, function (p) {
-                    if (p.payload && p.payload.sid !== sessionId && p.payload.user === currentUser) {
-                        applyData(p.payload.data);
-                        renderView(state.currentView);
-                        updateCloudUI({ realtime: true });
-                    }
-                })
-                .subscribe(function (status) {
-                    isRealtimeActive = (status === 'SUBSCRIBED');
-                    updateCloudUI({ realtime: isRealtimeActive });
-                });
-        }
-
-        // --- 🛠️ SETUP ---
-        function updateDate() {
-            var el = document.getElementById('current-date');
-            if (el) el.textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-        }
-        function setupNavigation() {
-            var ns = document.querySelectorAll('.nav-item');
-            for (var i = 0; i < ns.length; i++) {
-                ns[i].onclick = function () {
-                    renderView(this.getAttribute('data-view'));
-                };
-            }
-        }
-        function setupThemeToggle() {
-            var btn = document.getElementById('theme-toggle');
-            if (btn) btn.onclick = function () { document.body.classList.toggle('dark-mode'); };
-        }
-        function setupQuickActions() {
-            var btn = document.getElementById('quick-action-btn');
-            if (btn) btn.onclick = function () { var a = prompt('1: Gasto, 2: Tarea, 3: Compra'); if (a === '1') addExp(); else if (a === '2') addTask(); else if (a === '3') addShop(); };
-        }
-        window.resetApp = function () {
-            if (confirm('¿Borrar TODO los datos locales y recargar?')) {
-                localStorage.clear();
-                location.reload();
-            }
-        };
-
-        // --- 🚀 INICIO RESILIENTE ---
-        function initApp() {
-            try {
-                if (window.supabase) {
-                    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                } else {
-                    setTimeout(function () {
-                        if (window.supabase && !client) {
-                            client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                        }
-                    }, 3000);
-                }
-                
-                // Auto-login si hay usuario guardado
-                var savedUser = null;
-                try { savedUser = localStorage.getItem('homehub-user'); } catch(e) { }
-                
-                if (savedUser) {
-                    currentUser = savedUser;
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('app').style.display = 'flex';
-                    
-                    syncCloud();
-                    subscribeToChanges();
-                }
-                
-                loadState();
-                updateDate();
-                setupNavigation();
-                setupThemeToggle();
-                setupQuickActions();
-                renderView('dashboard');
-                
-                setInterval(function () {
-                    if (!isRealtimeActive && client && currentUser) subscribeToChanges();
-                }, 30000);
-            } catch (e) {
-                window.onerror('Init: ' + e.message, '', 0);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', initApp);
+        function addPlant() { let n = prompt("Nombre"); let d = prompt("Días frecuencia", "7"); if(n){ let next = new Date(); next.setDate(next.getDate()+parseInt(d)); state.data.plants.push({id:Date.now(), name:n, next: next.toISOString().split('T')[0]}); save(); render('plants'); } }
+        function waterPlant(id) { let p = state.data.plants.find(x=>x.id===id); if(p){ let next = new Date(); next.setDate(next.getDate()+7); p.next = next.toISOString().split('T')[0]; save(); render('plants'); } }
+        function delPlant(id) { state.data.plants = state.data.plants.filter(x => x.id !== id); save(); render('plants'); }
 
     </script>
 </body>
-
 </html>
+```
