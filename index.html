@@ -1,19 +1,8 @@
-Perfecto, he realizado todas las modificaciones que pediste. Aquí están los cambios detallados:
+¡Perfecto! Es una excelente idea para mantener la interfaz limpia. He modificado la sección de gastos para que los detalles de cada transacción estén **ocultos por defecto**.
 
-1.  **Gastos (Expenses):**
-    *   **Rubros Nuevos:** Se agregaron todos los rubros que pediste (Nafta, Supermercado, Hogar, Salud, Mascota, Ocio, Peluquería, Servicios, Otros).
-    *   **Porcentajes:** Ahora cada rubro muestra qué porcentaje representa del total mensual (ej: "Nafta $5.000 (10%)").
-    *   **Detalle Completo:** Debajo del resumen mensual, ahora se listan **todos los gastos individuales** con su fecha.
-    *   **Editar/Eliminar:** Cada gasto individual tiene botones para **Editar** (cambiar monto, fecha, rubro) o **Eliminar**.
-    *   **Exportar CSV:** Agregué un botón para descargar un archivo Excel/CSV con todos los gastos.
+Ahora verás el resumen del mes (Rubros y Totales) y abajo un botón desplegable que dice **"Ver detalle (X gastos)"**. Al tocarlo, se despliega la lista completa. Esto permitirá ver varios meses en la pantalla sin tener que hacer tanto scroll.
 
-2.  **Alertas (Agenda/Inicio):**
-    *   Ahora, al hacer clic en la alerta roja de "Tareas Pendientes", se abre una ventana emergente que lista las tareas vencidas. Desde ahí mismo puedes marcarlas como hechas o editarlas.
-
-3.  **Comidas (CocinAI):**
-    *   Agregué un botón **"Más ideas 🔄"**. Si tocas ese botón, la app buscará otras recetas que coincidan con tus ingredientes para darte nuevas sugerencias.
-
-Copia y pega este código completo:
+Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable**:
 
 ```html
 <!DOCTYPE html>
@@ -54,24 +43,37 @@ Copia y pega este código completo:
         /* Gastos */
         .month-header { background: var(--primary); color: white; padding: 12px 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
         .month-header h3 { font-size: 1rem; text-transform: capitalize; }
-        .cat-list { background: var(--bg-card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 15px 15px; overflow: hidden; margin-bottom: 5px; }
+        .cat-list { background: var(--bg-card); border: 1px solid var(--border); border-top: none; overflow: hidden; }
         .cat-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         .cat-row:last-child { border-bottom: none; }
         .cat-pct { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         
-        /* Lista de items individuales */
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; border-bottom: 1px solid var(--border); font-size: 0.85rem; background: var(--bg-main); }
+        /* Toggle Detalle */
+        .toggle-detail { 
+            background: var(--bg-main); padding: 10px; text-align: center; cursor: pointer; color: var(--primary); 
+            font-weight: 700; font-size: 0.8rem; border: 1px solid var(--border); border-top: none;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .toggle-detail i { transition: transform 0.3s; font-size: 0.7rem; }
+        
+        /* Items Container (Oculto por defecto) */
+        .items-container { 
+            display: none; /* Oculto por defecto */
+            border: 1px solid var(--border); border-top: none; border-radius: 0 0 15px 15px; overflow: hidden; margin-bottom: 20px; 
+        }
+        /* Clase para mostrar */
+        .items-container.show { display: block; }
+
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+        .item-row:last-child { border-bottom: none; }
+        .item-info { flex: 1; margin-right: 10px; }
+        .item-date { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+        .item-cat { font-weight: 700; font-size: 0.95rem; color: var(--primary-dark); }
+        .item-det { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 1px; }
+        .item-amt { font-weight: 700; font-size: 0.95rem; text-align: right; min-width: 80px; }
         .item-actions { display: flex; gap: 5px; margin-left: 10px; }
         .item-actions button { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; }
         .item-actions .del { color: var(--danger); }
-
-        /* Calendario */
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: var(--border); border-radius: 15px; overflow: hidden; }
-        .cal-cell { background: var(--bg-card); min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; position: relative; }
-        .cal-cell.today { background: var(--primary-light); color: var(--primary-dark); font-weight: 700; }
-        .cal-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 5px; }
-        .dot-task { background: var(--primary); }
-        .dot-plant { background: var(--success); }
 
         /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
@@ -130,6 +132,7 @@ Copia y pega este código completo:
             <option value="Servicios">Servicios</option>
             <option value="Otros">Otros</option>
         </select>
+        <input type="text" id="f-exp-det" class="input" placeholder="Detalle (ej: Super Chino)">
         <input type="date" id="f-exp-date" class="input">
         <button class="btn" onclick="saveExpense()">Guardar</button>
         <button class="btn btn-secondary" onclick="closeModal('m-exp')">Cancelar</button>
@@ -143,7 +146,7 @@ Copia y pega este código completo:
         <button class="btn" onclick="saveTask()">Guardar</button>
     </div></div>
     
-    <!-- Modal Alertas (Nuevo) -->
+    <!-- Modal Alertas -->
     <div id="m-alert" class="modal" onclick="closeModal('m-alert')"><div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="margin-bottom:15px; color:var(--danger)">⚠️ Tareas Pendientes</h3>
         <div id="alert-list"></div>
@@ -162,7 +165,7 @@ Copia y pega este código completo:
         const SUP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
         let db = null, user = null;
 
-        // --- RECETAS (Ampliadas) ---
+        // --- RECETAS ---
         const COOKBOOK = [
             { name: "Milanesas", ings: ["Pollo", "Pan rallado"], steps: ["1. Aplastar pollo.", "2. Pasar por huevo y pan.", "3. Freír."], tip: "Añadir limón al final." },
             { name: "Pasta Carbonara", ings: ["Pasta", "Panceta", "Huevo"], steps: ["1. Cocinar pasta.", "2. Dorar panceta.", "3. Mezclar huevo con pasta caliente."], tip: "No volver a calentar el huevo." },
@@ -273,14 +276,13 @@ Copia y pega este código completo:
             let t = state.data.tasks.find(x => x.id === id);
             if(t) t.status = 'done';
             save();
-            // Refrescar tanto el modal como la vista actual si es calendario
             let alerts = checkAlerts();
             if(alerts.length === 0) closeModal('m-alert');
             else openAlertModal();
             render(state.view);
         }
 
-        // --- GASTOS (MEJORADO) ---
+        // --- GASTOS (CON DESPLEGABLE) ---
         function renderExp(c) {
             let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px"><h2>💰 Gastos</h2>
                 <div style="display:flex; gap:5px">
@@ -313,7 +315,6 @@ Copia y pega este código completo:
 
             keys.forEach(k => {
                 let g = groups[k];
-                // Ordenar items por fecha descendente
                 g.items.sort((a,b) => new Date(b.date) - new Date(a.date));
 
                 html += `<div style="margin-bottom:20px">
@@ -327,14 +328,23 @@ Copia y pega este código completo:
                             </div>`;
                         }).join('')}
                     </div>
-                    <!-- Detalle de items -->
-                    <div style="border:1px solid var(--border); border-top:none; border-radius: 0 0 15px 15px; overflow:hidden; margin-bottom:20px">
+                    
+                    <!-- Botón Desplegable -->
+                    <div class="toggle-detail" onclick="toggleItems('items-${k}')">
+                        <i class="fa-solid fa-chevron-down" id="icon-${k}"></i>
+                        Ver detalle (${g.items.length} gastos)
+                    </div>
+                    
+                    <!-- Contenedor de Items (Oculto) -->
+                    <div id="items-${k}" class="items-container">
                         ${g.items.map(it => `
                             <div class="item-row">
-                                <div style="display:flex; justify-content:space-between; width:100%">
-                                    <span>${it.date}</span>
-                                    <span style="font-weight:700">$${it.amount.toLocaleString()}</span>
+                                <div class="item-info">
+                                    <div class="item-date">${it.date}</div>
+                                    <div class="item-cat">${it.cat}</div>
+                                    ${it.detail ? `<span class="item-det">${it.detail}</span>` : ''}
                                 </div>
+                                <div class="item-amt">$${it.amount.toLocaleString()}</div>
                                 <div class="item-actions">
                                     <button onclick="editExpense(${it.id})"><i class="fa-solid fa-pen"></i></button>
                                     <button class="del" onclick="delExpense(${it.id})"><i class="fa-solid fa-trash"></i></button>
@@ -347,10 +357,23 @@ Copia y pega este código completo:
             c.innerHTML = html;
         }
         
+        // Función para desplegar/ocultar
+        function toggleItems(id) {
+            let el = $(id);
+            let icon = $('icon-' + id.split('-')[1]); // obtiene icon-2024-03 etc
+            if(el.style.display === 'block') {
+                el.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                el.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+        
         function openExpenseModal(id = null) {
-            // Reset
             $('f-exp-id').value = '';
             $('f-exp-amt').value = '';
+            $('f-exp-det').value = '';
             $('f-exp-date').value = new Date().toISOString().split('T')[0];
             $('m-exp-title').innerText = "Nuevo Gasto";
             
@@ -360,6 +383,7 @@ Copia y pega este código completo:
                     $('f-exp-id').value = id;
                     $('f-exp-amt').value = e.amount;
                     $('f-exp-cat').value = e.cat;
+                    $('f-exp-det').value = e.detail || '';
                     $('f-exp-date').value = e.date;
                     $('m-exp-title').innerText = "Editar Gasto";
                 }
@@ -372,16 +396,15 @@ Copia y pega este código completo:
             let amount = parseFloat($('f-exp-amt').value);
             let cat = $('f-exp-cat').value;
             let date = $('f-exp-date').value;
+            let detail = $('f-exp-det').value;
             
             if(isNaN(amount) || amount <= 0 || !date) { alert("Falta monto o fecha."); return; }
 
             if(id) {
-                // Editar
                 let e = state.data.expenses.find(x => x.id == id);
-                if(e) { e.amount = amount; e.cat = cat; e.date = date; }
+                if(e) { e.amount = amount; e.cat = cat; e.date = date; e.detail = detail; }
             } else {
-                // Nuevo
-                state.data.expenses.push({id: Date.now(), amount: amount, cat: cat, date: date});
+                state.data.expenses.push({id: Date.now(), amount: amount, cat: cat, date: date, detail: detail});
             }
             
             save(); 
@@ -399,11 +422,10 @@ Copia y pega este código completo:
         }
         
         function exportCSV() {
-            let rows = [["Fecha", "Rubro", "Monto"]];
+            let rows = [["Fecha", "Rubro", "Detalle", "Monto"]];
             state.data.expenses.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(e => {
-                rows.push([e.date, e.cat, e.amount]);
+                rows.push([e.date, e.cat, e.detail || '', e.amount]);
             });
-            
             let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
             let link = document.createElement("a");
             link.setAttribute("href", encodeURI(csvContent));
@@ -446,13 +468,10 @@ Copia y pega este código completo:
         function openTask(date) { $('f-task-date').value = date; openModal('m-task'); }
         function saveTask() { let txt = $('f-task-txt').value; let date = $('f-task-date').value; if(!txt) return; state.data.tasks.push({id: Date.now(), txt, date, status: 'pendiente'}); save(); closeModal('m-task'); render('calendar'); }
 
-        // --- COMIDAS (CON REFRESH) ---
+        // --- COMIDAS ---
         function renderMeals(c) {
             let stock = (state.data.meals && Array.isArray(state.data.meals.stock)) ? state.data.meals.stock : [];
-            // Filtrar recetas y mezclar orden para dar "más ideas"
             let validRecipes = COOKBOOK.filter(r => r.ings.some(i => stock.includes(i)));
-            
-            // Función helper para desordenar arrays
             const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
 
             let html = `<h2>🍽️ CocinAI</h2>
@@ -472,7 +491,6 @@ Copia y pega este código completo:
             
             if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes.</p>`;
             
-            // Mostrar recetas desordenadas para que cambien al dar refresh
             shuffle(validRecipes).slice(0, 4).forEach(r => {
                 html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer">
                     <h4>${r.name}</h4>
