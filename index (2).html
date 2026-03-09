@@ -1,8 +1,14 @@
-¡Perfecto! Es una excelente idea para mantener la interfaz limpia. He modificado la sección de gastos para que los detalles de cada transacción estén **ocultos por defecto**.
+¡Entendido! He realizado todas las correcciones y mejoras que pediste para dejar la aplicación perfecta:
 
-Ahora verás el resumen del mes (Rubros y Totales) y abajo un botón desplegable que dice **"Ver detalle (X gastos)"**. Al tocarlo, se despliega la lista completa. Esto permitirá ver varios meses en la pantalla sin tener que hacer tanto scroll.
+1.  **Calendario:** He restaurado el diseño clásico de grilla para que se vea prolijo y ordenado como antes.
+2.  **Comidas:**
+    *   Cambié "Mi nevera" por **"Mi heladera"**.
+    *   **Nuevas Recetas:** Agregué más recetas a la base de datos (now hay 10 en total) para que al tocar "Más ideas" realmente aparezcan recetas diferentes y no solo cambien de lugar las mismas 3.
+3.  **Gastos (Interacción por Rubro):**
+    *   Ahora puedes hacer **clic sobre cualquier rubro** (ej: "Nafta") en el resumen mensual.
+    *   Se abrirá una ventana emergente mostrando **solo los gastos de ese rubro** para ese mes (con fecha, detalle y monto).
 
-Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable**:
+Aquí tienes el código completo actualizado:
 
 ```html
 <!DOCTYPE html>
@@ -44,24 +50,18 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
         .month-header { background: var(--primary); color: white; padding: 12px 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
         .month-header h3 { font-size: 1rem; text-transform: capitalize; }
         .cat-list { background: var(--bg-card); border: 1px solid var(--border); border-top: none; overflow: hidden; }
-        .cat-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        
+        /* Fila de Rubro Clickeable */
+        .cat-row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .cat-row:hover { background: var(--bg-main); }
         .cat-row:last-child { border-bottom: none; }
         .cat-pct { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         
-        /* Toggle Detalle */
-        .toggle-detail { 
-            background: var(--bg-main); padding: 10px; text-align: center; cursor: pointer; color: var(--primary); 
-            font-weight: 700; font-size: 0.8rem; border: 1px solid var(--border); border-top: none;
-            display: flex; justify-content: center; align-items: center; gap: 8px;
-        }
+        /* Toggle Detalle General */
+        .toggle-detail { background: var(--bg-main); padding: 10px; text-align: center; cursor: pointer; color: var(--primary); font-weight: 700; font-size: 0.8rem; border: 1px solid var(--border); border-top: none; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .toggle-detail i { transition: transform 0.3s; font-size: 0.7rem; }
         
-        /* Items Container (Oculto por defecto) */
-        .items-container { 
-            display: none; /* Oculto por defecto */
-            border: 1px solid var(--border); border-top: none; border-radius: 0 0 15px 15px; overflow: hidden; margin-bottom: 20px; 
-        }
-        /* Clase para mostrar */
+        .items-container { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 15px 15px; overflow: hidden; margin-bottom: 20px; }
         .items-container.show { display: block; }
 
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
@@ -74,6 +74,15 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
         .item-actions { display: flex; gap: 5px; margin-left: 10px; }
         .item-actions button { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; }
         .item-actions .del { color: var(--danger); }
+
+        /* Calendario Corregido */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 15px; overflow: hidden; border: 1px solid var(--border); }
+        .cal-head { background: var(--bg-main); padding: 8px; text-align: center; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+        .cal-cell { background: var(--bg-card); min-height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.85rem; cursor: pointer; position: relative; }
+        .cal-cell.today { background: var(--primary-light); color: var(--primary-dark); font-weight: 700; }
+        .cal-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 5px; }
+        .dot-task { background: var(--primary); }
+        .dot-plant { background: var(--success); }
 
         /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
@@ -137,6 +146,13 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
         <button class="btn" onclick="saveExpense()">Guardar</button>
         <button class="btn btn-secondary" onclick="closeModal('m-exp')">Cancelar</button>
     </div></div>
+    
+    <!-- Modal Detalle Rubro (Nuevo) -->
+    <div id="m-cat" class="modal" onclick="closeModal('m-cat')"><div class="modal-box" onclick="event.stopPropagation()">
+        <h3 id="m-cat-title" style="margin-bottom:15px; color:var(--primary)">Detalle Rubro</h3>
+        <div id="m-cat-list"></div>
+        <button class="btn btn-secondary" style="margin-top:15px" onclick="closeModal('m-cat')">Cerrar</button>
+    </div></div>
 
     <!-- Modal Tareas -->
     <div id="m-task" class="modal" onclick="closeModal('m-task')"><div class="modal-box" onclick="event.stopPropagation()">
@@ -165,7 +181,7 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
         const SUP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
         let db = null, user = null;
 
-        // --- RECETAS ---
+        // --- RECETAS (Ampliadas a 10) ---
         const COOKBOOK = [
             { name: "Milanesas", ings: ["Pollo", "Pan rallado"], steps: ["1. Aplastar pollo.", "2. Pasar por huevo y pan.", "3. Freír."], tip: "Añadir limón al final." },
             { name: "Pasta Carbonara", ings: ["Pasta", "Panceta", "Huevo"], steps: ["1. Cocinar pasta.", "2. Dorar panceta.", "3. Mezclar huevo con pasta caliente."], tip: "No volver a calentar el huevo." },
@@ -173,7 +189,10 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
             { name: "Ensalada Mixta", ings: ["Lechuga", "Tomate", "Huevo"], steps: ["1. Lavar verduras.", "2. Hervir huevo.", "3. Mezclar todo."], tip: "Aliñar con aceite de oliva." },
             { name: "Arroz con Pollo", ings: ["Arroz", "Pollo", "Cebolla"], steps: ["1. Dorar pollo.", "2. Rehogar arroz.", "3. Cocinar con caldo."], tip: "Añadir pimientos." },
             { name: "Hamburguesas Caseras", ings: ["Carne", "Pan", "Queso"], steps: ["1. Formar medallones.", "2. Cocinar a la plancha.", "3. Armar con pan y queso."], tip: "Tostar el pan levemente." },
-            { name: "Sopa de Verduras", ings: ["Zanahoria", "Papa", "Cebolla"], steps: ["1. Picar verduras.", "2. Hervir en caldo.", "3. Servir caliente."], tip: "Ideal para días fríos." }
+            { name: "Sopa de Verduras", ings: ["Zanahoria", "Papa", "Cebolla"], steps: ["1. Picar verduras.", "2. Hervir en caldo.", "3. Servir caliente."], tip: "Ideal para días fríos." },
+            { name: "Fajitas de Pollo", ings: ["Pollo", "Pimiento", "Tortillas"], steps: ["1. Cocinar pollo en tiras.", "2. Saltear pimientos.", "3. Servir en tortillas."], tip: "Añadir limón y guacamole." },
+            { name: "Pizza Casera", ings: ["Harina", "Salsa", "Queso"], steps: ["1. Estirar masa.", "2. Cubrir con salsa y queso.", "3. Hornear a máximo."], tip: "Precalentar el horno bien fuerte." },
+            { name: "Omelette", ings: ["Huevo", "Queso", "Jamón"], steps: ["1. Batir huevos.", "2. Cocinar en sartén.", "3. Rellenar y doblar."], tip: "Cocción lenta para que quede cremoso." }
         ];
 
         const getCleanData = () => ({ expenses: [], tasks: [], plants: [], shopping: [], meals: { stock: [] } });
@@ -182,30 +201,20 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
             try { if(window.supabase) db = window.supabase.createClient(SUP_URL, SUP_KEY); } catch(e) {}
-            
             user = localStorage.getItem('hh_user');
             if(user) showApp();
-            
-            $('login-btn').onclick = () => {
-                let n = $('login-input').value; if(!n) return;
-                user = n; localStorage.setItem('hh_user', n);
-                showApp();
-            };
+            $('login-btn').onclick = () => { let n = $('login-input').value; if(!n) return; user = n; localStorage.setItem('hh_user', n); showApp(); };
             document.querySelectorAll('.nav-item').forEach(b => b.onclick = function() { render(this.dataset.view) });
             $('date-display').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' });
         });
 
         function $(id) { return document.getElementById(id); }
         function showApp() { $('login-screen').style.display='none'; $('app').style.display='flex'; load(); }
-        
         function resetData() { if(confirm("¿Borrar todos los datos locales?")) { localStorage.removeItem('hh_data_'+user); state.data = getCleanData(); render(); } }
         function save() { if(!user) return; try { localStorage.setItem('hh_data_'+user, JSON.stringify(state.data)); if(db) db.from('homehub_data').upsert({ user_name: user, data_json: JSON.stringify(state.data) }).then(); } catch(e) {} }
         function load() {
             if(!user) return;
-            try {
-                let d = localStorage.getItem('hh_data_'+user);
-                if(d) { let parsed = JSON.parse(d); if(typeof parsed === 'object') { state.data = getCleanData(); if(Array.isArray(parsed.expenses)) state.data.expenses = parsed.expenses; if(Array.isArray(parsed.tasks)) state.data.tasks = parsed.tasks; if(Array.isArray(parsed.plants)) state.data.plants = parsed.plants; if(Array.isArray(parsed.shopping)) state.data.shopping = parsed.shopping; if(parsed.meals && Array.isArray(parsed.meals.stock)) state.data.meals.stock = parsed.meals.stock; } }
-            } catch(e) { state.data = getCleanData(); }
+            try { let d = localStorage.getItem('hh_data_'+user); if(d) { let parsed = JSON.parse(d); if(typeof parsed === 'object') { state.data = getCleanData(); if(Array.isArray(parsed.expenses)) state.data.expenses = parsed.expenses; if(Array.isArray(parsed.tasks)) state.data.tasks = parsed.tasks; if(Array.isArray(parsed.plants)) state.data.plants = parsed.plants; if(Array.isArray(parsed.shopping)) state.data.shopping = parsed.shopping; if(parsed.meals && Array.isArray(parsed.meals.stock)) state.data.meals.stock = parsed.meals.stock; } } } catch(e) { state.data = getCleanData(); }
             render();
             if(db) { db.from('homehub_data').select('data_json').eq('user_name', user).single().then(r => { if(r.data && r.data.data_json) { try { let cloudData = JSON.parse(r.data.data_json); if(Array.isArray(cloudData.expenses)) state.data.expenses = cloudData.expenses; if(Array.isArray(cloudData.tasks)) state.data.tasks = cloudData.tasks; if(Array.isArray(cloudData.plants)) state.data.plants = cloudData.plants; render(); } catch(e) {} } }); }
         }
@@ -229,246 +238,133 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
             } catch (e) { c.innerHTML = `<div style="padding:20px; color:var(--danger)">Error. Toca Reset.</div>`; }
         }
 
-        function checkAlerts() {
-            if(!Array.isArray(state.data.tasks)) return [];
-            let today = new Date().toISOString().split('T')[0];
-            return state.data.tasks.filter(t => t.date <= today && t.status === 'pendiente');
-        }
+        function checkAlerts() { if(!Array.isArray(state.data.tasks)) return []; let today = new Date().toISOString().split('T')[0]; return state.data.tasks.filter(t => t.date <= today && t.status === 'pendiente'); }
 
-        // --- DASHBOARD ---
         function renderDash(c, alerts) {
-            let now = new Date();
-            let curM = now.getMonth(), curY = now.getFullYear();
+            let now = new Date(); let curM = now.getMonth(), curY = now.getFullYear();
             let totCur = state.data.expenses.filter(e => new Date(e.date).getMonth() === curM && new Date(e.date).getFullYear() === curY).reduce((a,b) => a + (b.amount||0), 0);
-            
             let html = '';
             if(alerts.length > 0) html += `<div class="alert-box" onclick="openAlertModal()"><i class="fa-solid fa-bell"></i><div><b>¡Atención!</b><div style="font-size:0.8rem">${alerts.length} tarea(s) vencida(s)</div></div></div>`;
-            
             html += `<div class="dash-grid">
-                <div class="card" onclick="render('expenses')" style="cursor:pointer">
-                    <p style="font-size:0.8rem; color:var(--text-muted)">Gastos Mes</p>
-                    <h2 style="margin:5px 0">$${totCur.toLocaleString()}</h2>
-                </div>
-                <div class="card" onclick="render('calendar')" style="cursor:pointer; background:var(--primary); color:white">
-                    <i class="fa-solid fa-calendar-check" style="font-size:2rem"></i>
-                    <p style="margin-top:10px; font-size:0.8rem">Ver Agenda</p>
-                </div>
+                <div class="card" onclick="render('expenses')" style="cursor:pointer"><p style="font-size:0.8rem; color:var(--text-muted)">Gastos Mes</p><h2 style="margin:5px 0">$${totCur.toLocaleString()}</h2></div>
+                <div class="card" onclick="render('calendar')" style="cursor:pointer; background:var(--primary); color:white"><i class="fa-solid fa-calendar-check" style="font-size:2rem"></i><p style="margin-top:10px; font-size:0.8rem">Ver Agenda</p></div>
             </div>`;
             c.innerHTML = html;
         }
         
         function openAlertModal() {
-            let alerts = checkAlerts();
-            let html = '';
-            alerts.forEach(t => {
-                html += `<div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center">
-                    <div><b>${t.txt}</b><br><span style="font-size:0.7rem; color:var(--danger)">Vencía: ${t.date}</span></div>
-                    <div style="display:flex; gap:5px">
-                        <button class="icon-btn" onclick="doneTask(${t.id})" style="background:var(--success); color:white"><i class="fa-solid fa-check"></i></button>
-                    </div>
-                </div>`;
-            });
-            $('alert-list').innerHTML = html;
-            openModal('m-alert');
+            let alerts = checkAlerts(); let html = '';
+            alerts.forEach(t => { html += `<div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center"><div><b>${t.txt}</b><br><span style="font-size:0.7rem; color:var(--danger)">Vencía: ${t.date}</span></div><div style="display:flex; gap:5px"><button class="icon-btn" onclick="doneTask(${t.id})" style="background:var(--success); color:white"><i class="fa-solid fa-check"></i></button></div></div>`; });
+            $('alert-list').innerHTML = html; openModal('m-alert');
         }
-        
-        function doneTask(id) {
-            let t = state.data.tasks.find(x => x.id === id);
-            if(t) t.status = 'done';
-            save();
-            let alerts = checkAlerts();
-            if(alerts.length === 0) closeModal('m-alert');
-            else openAlertModal();
-            render(state.view);
-        }
+        function doneTask(id) { let t = state.data.tasks.find(x => x.id === id); if(t) t.status = 'done'; save(); let alerts = checkAlerts(); if(alerts.length === 0) closeModal('m-alert'); else openAlertModal(); render(state.view); }
 
-        // --- GASTOS (CON DESPLEGABLE) ---
+        // --- GASTOS (CON MODAL POR RUBRO) ---
         function renderExp(c) {
             let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px"><h2>💰 Gastos</h2>
-                <div style="display:flex; gap:5px">
-                    <button class="icon-btn" onclick="exportCSV()" title="Exportar CSV"><i class="fa-solid fa-download"></i></button>
-                    <button class="icon-btn" onclick="openExpenseModal()"><i class="fa-solid fa-plus"></i></button>
-                </div>
+                <div style="display:flex; gap:5px"><button class="icon-btn" onclick="exportCSV()" title="Exportar CSV"><i class="fa-solid fa-download"></i></button><button class="icon-btn" onclick="openExpenseModal()"><i class="fa-solid fa-plus"></i></button></div>
             </div>`;
-            
             let items = state.data.expenses || [];
             if(items.length === 0) html += `<p style="text-align:center; opacity:0.5; margin-top:30px">No hay gastos.</p>`;
 
             let groups = {};
             items.forEach(e => {
-                try {
-                    if(!e.date) return;
-                    let d = new Date(e.date);
-                    let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                    let name = d.toLocaleString('es-ES', {year:'numeric', month:'long'});
-                    if(!groups[key]) groups[key] = {name: name, total:0, cats:{}, items:[]};
-                    let amount = e.amount || 0;
-                    let cat = e.cat || 'Otros';
-                    groups[key].total += amount;
-                    if(!groups[key].cats[cat]) groups[key].cats[cat] = 0;
-                    groups[key].cats[cat] += amount;
-                    groups[key].items.push(e);
-                } catch(err) {}
+                try { if(!e.date) return; let d = new Date(e.date); let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; let name = d.toLocaleString('es-ES', {year:'numeric', month:'long'});
+                if(!groups[key]) groups[key] = {name: name, total:0, cats:{}, items:[]}; let amount = e.amount || 0; let cat = e.cat || 'Otros';
+                groups[key].total += amount; if(!groups[key].cats[cat]) groups[key].cats[cat] = 0; groups[key].cats[cat] += amount; groups[key].items.push(e); } catch(err) {}
             });
 
             let keys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
 
             keys.forEach(k => {
                 let g = groups[k];
-                g.items.sort((a,b) => new Date(b.date) - new Date(a.date));
-
                 html += `<div style="margin-bottom:20px">
                     <div class="month-header"><h3>${g.name}</h3><span>$${g.total.toLocaleString()}</span></div>
                     <div class="cat-list">
                         ${Object.keys(g.cats).map(cat => {
                             let pct = g.total > 0 ? (g.cats[cat] / g.total * 100).toFixed(0) : 0;
-                            return `<div class="cat-row">
-                                <div><span>${cat}</span> <span class="cat-pct">(${pct}%)</span></div>
-                                <strong>$${g.cats[cat].toLocaleString()}</strong>
+                            return `<div class="cat-row" onclick="showCatDetail('${k}', '${cat}')">
+                                <div><span style="font-weight:600">${cat}</span> <span class="cat-pct">(${pct}%)</span></div>
+                                <div style="display:flex; align-items:center; gap:5px"><strong>$${g.cats[cat].toLocaleString()}</strong> <i class="fa-solid fa-chevron-right" style="font-size:0.7rem; color:var(--text-muted)"></i></div>
                             </div>`;
                         }).join('')}
                     </div>
-                    
-                    <!-- Botón Desplegable -->
-                    <div class="toggle-detail" onclick="toggleItems('items-${k}')">
-                        <i class="fa-solid fa-chevron-down" id="icon-${k}"></i>
-                        Ver detalle (${g.items.length} gastos)
-                    </div>
-                    
-                    <!-- Contenedor de Items (Oculto) -->
+                    <div class="toggle-detail" onclick="toggleItems('items-${k}')"><i class="fa-solid fa-chevron-down" id="icon-${k}"></i> Ver detalle completo (${g.items.length})</div>
                     <div id="items-${k}" class="items-container">
                         ${g.items.map(it => `
                             <div class="item-row">
-                                <div class="item-info">
-                                    <div class="item-date">${it.date}</div>
-                                    <div class="item-cat">${it.cat}</div>
-                                    ${it.detail ? `<span class="item-det">${it.detail}</span>` : ''}
-                                </div>
+                                <div class="item-info"><div class="item-date">${it.date}</div><div class="item-cat">${it.cat}</div>${it.detail ? `<span class="item-det">${it.detail}</span>` : ''}</div>
                                 <div class="item-amt">$${it.amount.toLocaleString()}</div>
-                                <div class="item-actions">
-                                    <button onclick="editExpense(${it.id})"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="del" onclick="delExpense(${it.id})"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </div>
-                        `).join('')}
+                                <div class="item-actions"><button onclick="editExpense(${it.id})"><i class="fa-solid fa-pen"></i></button><button class="del" onclick="delExpense(${it.id})"><i class="fa-solid fa-trash"></i></button></div>
+                            </div>`).join('')}
                     </div>
                 </div>`;
             });
             c.innerHTML = html;
         }
         
-        // Función para desplegar/ocultar
-        function toggleItems(id) {
-            let el = $(id);
-            let icon = $('icon-' + id.split('-')[1]); // obtiene icon-2024-03 etc
-            if(el.style.display === 'block') {
-                el.style.display = 'none';
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                el.style.display = 'block';
-                icon.style.transform = 'rotate(180deg)';
-            }
+        function showCatDetail(monthKey, category) {
+            // Filtrar items del mes y rubro
+            let items = state.data.expenses.filter(e => {
+                let d = new Date(e.date);
+                let mKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                return mKey === monthKey && e.cat === category;
+            });
+            
+            let html = `<p style="margin-bottom:10px; color:var(--text-muted)">Mostrando ${items.length} gastos de <b>${category}</b></p>`;
+            items.forEach(it => {
+                html += `<div class="item-row" style="border:1px solid var(--border); margin-bottom:5px; border-radius:10px">
+                    <div class="item-info"><div class="item-date">${it.date}</div><span class="item-det">${it.detail || 'Sin detalle'}</span></div>
+                    <div class="item-amt">$${it.amount.toLocaleString()}</div>
+                </div>`;
+            });
+            
+            $('m-cat-title').innerText = category;
+            $('m-cat-list').innerHTML = html;
+            openModal('m-cat');
         }
+        
+        function toggleItems(id) { let el = $(id); let icon = $('icon-' + id.split('-')[1]); if(el.classList.contains('show')) { el.classList.remove('show'); icon.style.transform = 'rotate(0deg)'; } else { el.classList.add('show'); icon.style.transform = 'rotate(180deg)'; } }
         
         function openExpenseModal(id = null) {
-            $('f-exp-id').value = '';
-            $('f-exp-amt').value = '';
-            $('f-exp-det').value = '';
-            $('f-exp-date').value = new Date().toISOString().split('T')[0];
-            $('m-exp-title').innerText = "Nuevo Gasto";
-            
-            if(id) {
-                let e = state.data.expenses.find(x => x.id === id);
-                if(e) {
-                    $('f-exp-id').value = id;
-                    $('f-exp-amt').value = e.amount;
-                    $('f-exp-cat').value = e.cat;
-                    $('f-exp-det').value = e.detail || '';
-                    $('f-exp-date').value = e.date;
-                    $('m-exp-title').innerText = "Editar Gasto";
-                }
-            }
+            $('f-exp-id').value = ''; $('f-exp-amt').value = ''; $('f-exp-det').value = ''; $('f-exp-date').value = new Date().toISOString().split('T')[0]; $('m-exp-title').innerText = "Nuevo Gasto";
+            if(id) { let e = state.data.expenses.find(x => x.id === id); if(e) { $('f-exp-id').value = id; $('f-exp-amt').value = e.amount; $('f-exp-cat').value = e.cat; $('f-exp-det').value = e.detail || ''; $('f-exp-date').value = e.date; $('m-exp-title').innerText = "Editar Gasto"; } }
             openModal('m-exp');
         }
-        
         function saveExpense() {
-            let id = $('f-exp-id').value;
-            let amount = parseFloat($('f-exp-amt').value);
-            let cat = $('f-exp-cat').value;
-            let date = $('f-exp-date').value;
-            let detail = $('f-exp-det').value;
-            
+            let id = $('f-exp-id').value; let amount = parseFloat($('f-exp-amt').value); let cat = $('f-exp-cat').value; let date = $('f-exp-date').value; let detail = $('f-exp-det').value;
             if(isNaN(amount) || amount <= 0 || !date) { alert("Falta monto o fecha."); return; }
-
-            if(id) {
-                let e = state.data.expenses.find(x => x.id == id);
-                if(e) { e.amount = amount; e.cat = cat; e.date = date; e.detail = detail; }
-            } else {
-                state.data.expenses.push({id: Date.now(), amount: amount, cat: cat, date: date, detail: detail});
-            }
-            
-            save(); 
-            closeModal('m-exp');
-            render('expenses');
+            if(id) { let e = state.data.expenses.find(x => x.id == id); if(e) { e.amount = amount; e.cat = cat; e.date = date; e.detail = detail; } } else { state.data.expenses.push({id: Date.now(), amount: amount, cat: cat, date: date, detail: detail}); }
+            save(); closeModal('m-exp'); render('expenses');
         }
-        
         function editExpense(id) { openExpenseModal(id); }
-        
-        function delExpense(id) {
-            if(confirm("¿Borrar este gasto?")) {
-                state.data.expenses = state.data.expenses.filter(x => x.id !== id);
-                save(); render('expenses');
-            }
-        }
-        
+        function delExpense(id) { if(confirm("¿Borrar este gasto?")) { state.data.expenses = state.data.expenses.filter(x => x.id !== id); save(); render('expenses'); } }
         function exportCSV() {
-            let rows = [["Fecha", "Rubro", "Detalle", "Monto"]];
-            state.data.expenses.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(e => {
-                rows.push([e.date, e.cat, e.detail || '', e.amount]);
-            });
-            let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-            let link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csvContent));
-            link.setAttribute("download", "gastos_homehub.csv");
-            document.body.appendChild(link); 
-            link.click();
-            document.body.removeChild(link);
+            let rows = [["Fecha", "Rubro", "Detalle", "Monto"]]; state.data.expenses.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(e => { rows.push([e.date, e.cat, e.detail || '', e.amount]); });
+            let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n"); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "gastos_homehub.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // --- CALENDARIO ---
+        // --- CALENDARIO (CORREGIDO) ---
         function renderCal(c, alerts) {
-            let now = new Date();
-            let y = now.getFullYear(), m = now.getMonth();
-            let days = new Date(y, m+1, 0).getDate();
-            let start = (new Date(y, m, 1).getDay() + 6) % 7;
-
+            let now = new Date(); let y = now.getFullYear(), m = now.getMonth(); let days = new Date(y, m+1, 0).getDate(); let start = (new Date(y, m, 1).getDay() + 6) % 7;
             let html = `<div style="display:flex; justify-content:space-between; margin-bottom:10px"><h2>📅 Agenda</h2><button class="icon-btn" onclick="openModal('m-task')"><i class="fa-solid fa-plus"></i></button></div>`;
-            
             if(alerts.length > 0) html += `<div class="alert-box" onclick="openAlertModal()"><i class="fa-solid fa-bell"></i><div><b>⚠️ Pendientes:</b> ${alerts.length} tarea(s)</div></div>`;
 
             html += `<div class="cal-grid">`;
-            ['L','M','X','J','V','S','D'].forEach(d => html += `<div class="cal-cell" style="background:var(--bg-main); font-weight:700; font-size:0.6rem">${d}</div>`);
+            ['L','M','X','J','V','S','D'].forEach(d => html += `<div class="cal-head">${d}</div>`);
             for(let i=0; i<start; i++) html += `<div class="cal-cell" style="opacity:0"></div>`;
             for(let d=1; d<=days; d++) {
-                let dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                let isToday = d === now.getDate();
-                let tasks = (state.data.tasks || []).filter(t => t.date === dateStr);
-                let plants = (state.data.plants || []).filter(p => p.next === dateStr);
-                
-                html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="openTask('${dateStr}')">
-                    ${d}
-                    ${tasks.length ? `<div class="cal-dot dot-task"></div>` : ''}
-                    ${plants.length ? `<div class="cal-dot dot-plant" style="left:60%"></div>` : ''}
-                </div>`;
+                let dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; let isToday = d === now.getDate();
+                let tasks = (state.data.tasks || []).filter(t => t.date === dateStr); let plants = (state.data.plants || []).filter(p => p.next === dateStr);
+                html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="openTask('${dateStr}')">${d}${tasks.length ? `<div class="cal-dot dot-task"></div>` : ''}${plants.length ? `<div class="cal-dot dot-plant" style="left:60%"></div>` : ''}</div>`;
             }
             html += `</div>`;
             c.innerHTML = html;
         }
-        
         function openTask(date) { $('f-task-date').value = date; openModal('m-task'); }
         function saveTask() { let txt = $('f-task-txt').value; let date = $('f-task-date').value; if(!txt) return; state.data.tasks.push({id: Date.now(), txt, date, status: 'pendiente'}); save(); closeModal('m-task'); render('calendar'); }
 
-        // --- COMIDAS ---
+        // --- COMIDAS (MEJORADO) ---
         function renderMeals(c) {
             let stock = (state.data.meals && Array.isArray(state.data.meals.stock)) ? state.data.meals.stock : [];
             let validRecipes = COOKBOOK.filter(r => r.ings.some(i => stock.includes(i)));
@@ -477,7 +373,7 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
             let html = `<h2>🍽️ CocinAI</h2>
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-                    <b>📦 Mi nevera</b>
+                    <b>❄️ Mi heladera</b>
                     <button class="icon-btn" onclick="addIng()"><i class="fa-solid fa-plus"></i></button>
                 </div>
                 <div style="min-height:30px">
@@ -485,85 +381,36 @@ Aquí tienes el código completo con la funcionalidad de **acordeón/desplegable
                 </div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 10px 5px">
-                <span style="font-size:0.8rem; color:var(--text-muted)">Recetas sugeridas:</span>
+                <span style="font-size:0.8rem; color:var(--text-muted)">Recetas sugeridas (${validRecipes.length} encontradas):</span>
                 <button class="icon-btn" onclick="render('meals')" title="Más ideas"><i class="fa-solid fa-refresh"></i></button>
             </div>`;
             
-            if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes.</p>`;
+            if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes en "Mi heladera".</p>`;
             
-            shuffle(validRecipes).slice(0, 4).forEach(r => {
-                html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer">
-                    <h4>${r.name}</h4>
-                    <p style="font-size:0.7rem; color:var(--text-muted)">${r.ings.join(', ')}</p>
-                </div>`;
+            // Mostramos hasta 5 recetas aleatorias para dar variedad real
+            shuffle(validRecipes).slice(0, 5).forEach(r => {
+                html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer"><h4>${r.name}</h4><p style="font-size:0.7rem; color:var(--text-muted)">${r.ings.join(', ')}</p></div>`;
             });
             c.innerHTML = html;
         }
         function addIng() { let i = prompt("Ingrediente:"); if(i) { if(!state.data.meals) state.data.meals={stock:[]}; if(!state.data.meals.stock) state.data.meals.stock=[]; state.data.meals.stock.push(i); save(); render('meals'); } }
         function delIng(i) { if(state.data.meals && state.data.meals.stock) state.data.meals.stock = state.data.meals.stock.filter(s => s !== i); save(); render('meals'); }
-        
         function showRecipe(name) {
-            let r = COOKBOOK.find(x => x.name === name);
-            if(!r) return;
-            let url = `https://www.google.com/search?q=receta+${encodeURIComponent(name)}+paso+a+paso`;
-            $('recipe-content').innerHTML = `
-                <h2>${r.name}</h2>
-                <p style="color:var(--text-muted); margin:5px 0 15px 0">${r.ings.join(', ')}</p>
-                <div style="margin-bottom:15px">
-                    ${r.steps.map(s => `<div class="recipe-step">${s}</div>`).join('')}
-                </div>
-                <div style="background:var(--primary-light); padding:10px; border-radius:10px; font-size:0.8rem"><b>Tip:</b> ${r.tip}</div>
-                <a href="${url}" target="_blank" style="display:block; text-align:center; margin-top:15px; color:var(--primary); font-weight:700; text-decoration:none"><i class="fa-solid fa-globe"></i> Buscar en la Web</a>
-            `;
+            let r = COOKBOOK.find(x => x.name === name); if(!r) return; let url = `https://www.google.com/search?q=receta+${encodeURIComponent(name)}+paso+a+paso`;
+            $('recipe-content').innerHTML = `<h2>${r.name}</h2><p style="color:var(--text-muted); margin:5px 0 15px 0">${r.ings.join(', ')}</p><div style="margin-bottom:15px">${r.steps.map(s => `<div class="recipe-step">${s}</div>`).join('')}</div><div style="background:var(--primary-light); padding:10px; border-radius:10px; font-size:0.8rem"><b>Tip:</b> ${r.tip}</div><a href="${url}" target="_blank" style="display:block; text-align:center; margin-top:15px; color:var(--primary); font-weight:700; text-decoration:none"><i class="fa-solid fa-globe"></i> Buscar en la Web</a>`;
             openModal('m-recipe');
         }
 
         // --- SECCIONES SIMPLES ---
-        function renderMore(c) {
-            c.innerHTML = `<h2>⚡ Funciones</h2><br>
-            <div class="card" onclick="render('shopping')" style="cursor:pointer"><b>🛒 Lista de Compras</b></div>
-            <div class="card" onclick="render('plants')" style="cursor:pointer"><b>🌱 Mis Plantas</b></div>
-            <div class="card" onclick="logout()" style="cursor:pointer; border-color:var(--danger); color:var(--danger)"><b>🚪 Cerrar Sesión</b></div>`;
-        }
-
-        function renderShop(c) {
-            if(!Array.isArray(state.data.shopping)) state.data.shopping = [];
-            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🛒 Compras</h2><button class="icon-btn" onclick="addShop()"><i class="fa-solid fa-plus"></i></button></div>`;
-            if(state.data.shopping.length === 0) html += `<p style="text-align:center; opacity:0.5">Lista vacía.</p>`;
-            state.data.shopping.forEach(s => {
-                html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center">
-                    <span style="${s.done ? 'text-decoration:line-through; opacity:0.5' : ''}">${s.name}</span>
-                    <div style="display:flex; gap:5px">
-                        <button class="icon-btn" onclick="toggleShop(${s.id})" style="background:${s.done ? 'var(--success)' : 'var(--bg-main)'}; color:${s.done ? 'white' : 'inherit'}"><i class="fa-solid fa-check"></i></button>
-                        <button class="icon-btn" onclick="delShop(${s.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>`;
-            });
-            c.innerHTML = html;
-        }
+        function renderMore(c) { c.innerHTML = `<h2>⚡ Funciones</h2><br><div class="card" onclick="render('shopping')" style="cursor:pointer"><b>🛒 Lista de Compras</b></div><div class="card" onclick="render('plants')" style="cursor:pointer"><b>🌱 Mis Plantas</b></div><div class="card" onclick="logout()" style="cursor:pointer; border-color:var(--danger); color:var(--danger)"><b>🚪 Cerrar Sesión</b></div>`; }
+        function renderShop(c) { if(!Array.isArray(state.data.shopping)) state.data.shopping = []; let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🛒 Compras</h2><button class="icon-btn" onclick="addShop()"><i class="fa-solid fa-plus"></i></button></div>`; if(state.data.shopping.length === 0) html += `<p style="text-align:center; opacity:0.5">Lista vacía.</p>`; state.data.shopping.forEach(s => { html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center"><span style="${s.done ? 'text-decoration:line-through; opacity:0.5' : ''}">${s.name}</span><div style="display:flex; gap:5px"><button class="icon-btn" onclick="toggleShop(${s.id})" style="background:${s.done ? 'var(--success)' : 'var(--bg-main)'}; color:${s.done ? 'white' : 'inherit'}"><i class="fa-solid fa-check"></i></button><button class="icon-btn" onclick="delShop(${s.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button></div></div>`; }); c.innerHTML = html; }
         function addShop() { let n = prompt("Item"); if(n){ state.data.shopping.push({id:Date.now(), name:n, done:false}); save(); render('shopping'); } }
         function toggleShop(id) { let i = state.data.shopping.find(x=>x.id===id); if(i) i.done = !i.done; save(); render('shopping'); }
         function delShop(id) { state.data.shopping = state.data.shopping.filter(x => x.id !== id); save(); render('shopping'); }
-
-        function renderPlants(c) {
-            if(!Array.isArray(state.data.plants)) state.data.plants = [];
-             let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🌱 Plantas</h2><button class="icon-btn" onclick="addPlant()"><i class="fa-solid fa-plus"></i></button></div>`;
-             if(state.data.plants.length === 0) html += `<p style="text-align:center; opacity:0.5">Sin plantas.</p>`;
-             state.data.plants.forEach(p => {
-                 html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center">
-                    <div><b>${p.name}</b><br><span style="font-size:0.7rem; color:var(--text-muted)">Riego: ${p.next}</span></div>
-                    <div style="display:flex; gap:5px">
-                        <button class="icon-btn" onclick="waterPlant(${p.id})" style="background:var(--success); color:white"><i class="fa-solid fa-droplet"></i></button>
-                        <button class="icon-btn" onclick="delPlant(${p.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                 </div>`;
-             });
-             c.innerHTML = html;
-        }
+        function renderPlants(c) { if(!Array.isArray(state.data.plants)) state.data.plants = []; let html = `<div style="display:flex; justify-content:space-between; margin-bottom:15px"><h2>🌱 Plantas</h2><button class="icon-btn" onclick="addPlant()"><i class="fa-solid fa-plus"></i></button></div>`; if(state.data.plants.length === 0) html += `<p style="text-align:center; opacity:0.5">Sin plantas.</p>`; state.data.plants.forEach(p => { html += `<div class="card" style="flex-direction:row; justify-content:space-between; align-items:center"><div><b>${p.name}</b><br><span style="font-size:0.7rem; color:var(--text-muted)">Riego: ${p.next}</span></div><div style="display:flex; gap:5px"><button class="icon-btn" onclick="waterPlant(${p.id})" style="background:var(--success); color:white"><i class="fa-solid fa-droplet"></i></button><button class="icon-btn" onclick="delPlant(${p.id})" style="color:var(--danger)"><i class="fa-solid fa-trash"></i></button></div></div>`; }); c.innerHTML = html; }
         function addPlant() { let n = prompt("Nombre"); let d = prompt("Días frecuencia", "7"); if(n){ let next = new Date(); next.setDate(next.getDate()+parseInt(d)); state.data.plants.push({id:Date.now(), name:n, next: next.toISOString().split('T')[0]}); save(); render('plants'); } }
         function waterPlant(id) { let p = state.data.plants.find(x=>x.id===id); if(p){ let next = new Date(); next.setDate(next.getDate()+7); p.next = next.toISOString().split('T')[0]; save(); render('plants'); } }
         function delPlant(id) { state.data.plants = state.data.plants.filter(x => x.id !== id); save(); render('plants'); }
-
     </script>
 </body>
 </html>
