@@ -1,16 +1,8 @@
-¡**SÍ, ES POSIBLE!** ¡Qué buena noticia que tengas ese archivo CSV! Ese es tu backup de seguridad.
+¡Ahí está el problema! Tu archivo CSV tiene **3 columnas** (Fecha, Rubro, Monto), pero el código que te di antes esperaba **4 columnas** (Fecha, Rubro, Detalle, Monto). Por eso no cargaba nada.
 
-Como la versión actual de la app solo tiene botón de "Descargar" pero no de "Cargar", vamos a agregar esa función ahora mismo.
+He corregido el código para que detecte automáticamente si tu archivo tiene 3 o 4 columnas y así pueda leerlo perfectamente.
 
-Sigue estos pasos:
-
-1.  Copia el **nuevo código** de abajo.
-2.  Reemplaza todo tu archivo `index.html` en GitHub con este nuevo código.
-3.  Entra a la app, ve a la sección **Gastos**.
-4.  Verás un botón nuevo que dice **"Importar CSV"** (al lado del de descargar).
-5.  Selecciona tu archivo `.csv` y ¡pum! volverán todos tus datos.
-
-Aquí tienes el código actualizado con la función de **Importación**:
+Copia y pega este código actualizado en tu `index.html`. Con este cambio, tu CSV se importará sin problemas.
 
 ```html
 <!DOCTYPE html>
@@ -337,7 +329,7 @@ Aquí tienes el código actualizado con la función de **Importación**:
         function editExpense(id) { openExpenseModal(id); }
         function delExpense(id) { if(confirm("¿Borrar este gasto?")) { state.data.expenses = state.data.expenses.filter(x => x.id !== id); save(); render('expenses'); } }
         
-        // --- NUEVA FUNCIÓN IMPORTAR CSV ---
+        // --- NUEVA FUNCIÓN IMPORTAR CSV (CORREGIDA) ---
         function importCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -348,29 +340,37 @@ Aquí tienes el código actualizado con la función de **Importación**:
                 const lines = text.split('\n');
                 let importedCount = 0;
                 
-                // Recorrer líneas (saltamos la cabecera)
-                lines.slice(1).forEach(line => {
-                    if(!line.trim()) return; // Saltar líneas vacías
+                lines.forEach(line => {
+                    if(!line.trim()) return;
                     
-                    // Separar por coma. Formato esperado: Fecha, Rubro, Detalle, Monto
                     const parts = line.split(',');
-                    if(parts.length >= 4) {
-                        const date = parts[0].trim();
-                        const cat = parts[1].trim();
-                        // El detalle puede tener comas, unimos del index 2 al -1 (opcional, para simpleza tomamos el 2)
-                        const detail = parts[2].trim(); 
-                        const amount = parseFloat(parts[3].trim());
-                        
-                        if(date && !isNaN(amount)) {
-                            state.data.expenses.push({
-                                id: Date.now() + Math.random(), // ID único
-                                date: date,
-                                cat: cat || 'Otros',
-                                detail: detail,
-                                amount: amount
-                            });
-                            importedCount++;
-                        }
+                    let date, cat, detail, amount;
+                    
+                    // Detectar formato automáticamente
+                    if (parts.length === 3) {
+                        // Formato: Fecha, Rubro, Monto (Sin detalle)
+                        date = parts[0].trim();
+                        cat = parts[1].trim();
+                        detail = ''; 
+                        amount = parseFloat(parts[2].trim());
+                    } else if (parts.length >= 4) {
+                        // Formato: Fecha, Rubro, Detalle, Monto
+                        date = parts[0].trim();
+                        cat = parts[1].trim();
+                        detail = parts[2].trim();
+                        amount = parseFloat(parts[3].trim());
+                    }
+                    
+                    // Validar datos básicos
+                    if(date && !isNaN(amount) && amount > 0) {
+                        state.data.expenses.push({
+                            id: Date.now() + Math.random(),
+                            date: date,
+                            cat: cat || 'Otros',
+                            detail: detail || '',
+                            amount: amount
+                        });
+                        importedCount++;
                     }
                 });
                 
@@ -379,7 +379,6 @@ Aquí tienes el código actualizado con la función de **Importación**:
                 render('expenses');
             };
             reader.readAsText(file);
-            // Resetear el input para permitir volver a subir el mismo archivo si hace falta
             event.target.value = ''; 
         }
 
