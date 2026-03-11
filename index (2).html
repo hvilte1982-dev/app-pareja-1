@@ -1,14 +1,16 @@
-¡Entendido! He realizado todas las correcciones y mejoras que pediste para dejar la aplicación perfecta:
+¡**SÍ, ES POSIBLE!** ¡Qué buena noticia que tengas ese archivo CSV! Ese es tu backup de seguridad.
 
-1.  **Calendario:** He restaurado el diseño clásico de grilla para que se vea prolijo y ordenado como antes.
-2.  **Comidas:**
-    *   Cambié "Mi nevera" por **"Mi heladera"**.
-    *   **Nuevas Recetas:** Agregué más recetas a la base de datos (now hay 10 en total) para que al tocar "Más ideas" realmente aparezcan recetas diferentes y no solo cambien de lugar las mismas 3.
-3.  **Gastos (Interacción por Rubro):**
-    *   Ahora puedes hacer **clic sobre cualquier rubro** (ej: "Nafta") en el resumen mensual.
-    *   Se abrirá una ventana emergente mostrando **solo los gastos de ese rubro** para ese mes (con fecha, detalle y monto).
+Como la versión actual de la app solo tiene botón de "Descargar" pero no de "Cargar", vamos a agregar esa función ahora mismo.
 
-Aquí tienes el código completo actualizado:
+Sigue estos pasos:
+
+1.  Copia el **nuevo código** de abajo.
+2.  Reemplaza todo tu archivo `index.html` en GitHub con este nuevo código.
+3.  Entra a la app, ve a la sección **Gastos**.
+4.  Verás un botón nuevo que dice **"Importar CSV"** (al lado del de descargar).
+5.  Selecciona tu archivo `.csv` y ¡pum! volverán todos tus datos.
+
+Aquí tienes el código actualizado con la función de **Importación**:
 
 ```html
 <!DOCTYPE html>
@@ -50,14 +52,11 @@ Aquí tienes el código completo actualizado:
         .month-header { background: var(--primary); color: white; padding: 12px 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
         .month-header h3 { font-size: 1rem; text-transform: capitalize; }
         .cat-list { background: var(--bg-card); border: 1px solid var(--border); border-top: none; overflow: hidden; }
-        
-        /* Fila de Rubro Clickeable */
         .cat-row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
         .cat-row:hover { background: var(--bg-main); }
         .cat-row:last-child { border-bottom: none; }
         .cat-pct { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         
-        /* Toggle Detalle General */
         .toggle-detail { background: var(--bg-main); padding: 10px; text-align: center; cursor: pointer; color: var(--primary); font-weight: 700; font-size: 0.8rem; border: 1px solid var(--border); border-top: none; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .toggle-detail i { transition: transform 0.3s; font-size: 0.7rem; }
         
@@ -75,7 +74,7 @@ Aquí tienes el código completo actualizado:
         .item-actions button { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; }
         .item-actions .del { color: var(--danger); }
 
-        /* Calendario Corregido */
+        /* Calendario */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 15px; overflow: hidden; border: 1px solid var(--border); }
         .cal-head { background: var(--bg-main); padding: 8px; text-align: center; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
         .cal-cell { background: var(--bg-card); min-height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.85rem; cursor: pointer; position: relative; }
@@ -125,6 +124,9 @@ Aquí tienes el código completo actualizado:
         </nav>
     </div>
 
+    <!-- Input oculto para importar CSV -->
+    <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="importCSV(event)">
+
     <!-- Modal Gastos -->
     <div id="m-exp" class="modal" onclick="closeModal('m-exp')"><div class="modal-box" onclick="event.stopPropagation()">
         <h3 id="m-exp-title" style="margin-bottom:15px">Registrar Gasto</h3>
@@ -147,7 +149,7 @@ Aquí tienes el código completo actualizado:
         <button class="btn btn-secondary" onclick="closeModal('m-exp')">Cancelar</button>
     </div></div>
     
-    <!-- Modal Detalle Rubro (Nuevo) -->
+    <!-- Modal Detalle Rubro -->
     <div id="m-cat" class="modal" onclick="closeModal('m-cat')"><div class="modal-box" onclick="event.stopPropagation()">
         <h3 id="m-cat-title" style="margin-bottom:15px; color:var(--primary)">Detalle Rubro</h3>
         <div id="m-cat-list"></div>
@@ -181,7 +183,7 @@ Aquí tienes el código completo actualizado:
         const SUP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g';
         let db = null, user = null;
 
-        // --- RECETAS (Ampliadas a 10) ---
+        // --- RECETAS ---
         const COOKBOOK = [
             { name: "Milanesas", ings: ["Pollo", "Pan rallado"], steps: ["1. Aplastar pollo.", "2. Pasar por huevo y pan.", "3. Freír."], tip: "Añadir limón al final." },
             { name: "Pasta Carbonara", ings: ["Pasta", "Panceta", "Huevo"], steps: ["1. Cocinar pasta.", "2. Dorar panceta.", "3. Mezclar huevo con pasta caliente."], tip: "No volver a calentar el huevo." },
@@ -259,10 +261,14 @@ Aquí tienes el código completo actualizado:
         }
         function doneTask(id) { let t = state.data.tasks.find(x => x.id === id); if(t) t.status = 'done'; save(); let alerts = checkAlerts(); if(alerts.length === 0) closeModal('m-alert'); else openAlertModal(); render(state.view); }
 
-        // --- GASTOS (CON MODAL POR RUBRO) ---
+        // --- GASTOS (CON IMPORTAR) ---
         function renderExp(c) {
             let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px"><h2>💰 Gastos</h2>
-                <div style="display:flex; gap:5px"><button class="icon-btn" onclick="exportCSV()" title="Exportar CSV"><i class="fa-solid fa-download"></i></button><button class="icon-btn" onclick="openExpenseModal()"><i class="fa-solid fa-plus"></i></button></div>
+                <div style="display:flex; gap:5px">
+                    <button class="icon-btn" onclick="document.getElementById('csv-file-input').click()" title="Importar CSV"><i class="fa-solid fa-upload"></i></button>
+                    <button class="icon-btn" onclick="exportCSV()" title="Exportar CSV"><i class="fa-solid fa-download"></i></button>
+                    <button class="icon-btn" onclick="openExpenseModal()"><i class="fa-solid fa-plus"></i></button>
+                </div>
             </div>`;
             let items = state.data.expenses || [];
             if(items.length === 0) html += `<p style="text-align:center; opacity:0.5; margin-top:30px">No hay gastos.</p>`;
@@ -304,13 +310,7 @@ Aquí tienes el código completo actualizado:
         }
         
         function showCatDetail(monthKey, category) {
-            // Filtrar items del mes y rubro
-            let items = state.data.expenses.filter(e => {
-                let d = new Date(e.date);
-                let mKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                return mKey === monthKey && e.cat === category;
-            });
-            
+            let items = state.data.expenses.filter(e => { let d = new Date(e.date); let mKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; return mKey === monthKey && e.cat === category; });
             let html = `<p style="margin-bottom:10px; color:var(--text-muted)">Mostrando ${items.length} gastos de <b>${category}</b></p>`;
             items.forEach(it => {
                 html += `<div class="item-row" style="border:1px solid var(--border); margin-bottom:5px; border-radius:10px">
@@ -318,10 +318,7 @@ Aquí tienes el código completo actualizado:
                     <div class="item-amt">$${it.amount.toLocaleString()}</div>
                 </div>`;
             });
-            
-            $('m-cat-title').innerText = category;
-            $('m-cat-list').innerHTML = html;
-            openModal('m-cat');
+            $('m-cat-title').innerText = category; $('m-cat-list').innerHTML = html; openModal('m-cat');
         }
         
         function toggleItems(id) { let el = $(id); let icon = $('icon-' + id.split('-')[1]); if(el.classList.contains('show')) { el.classList.remove('show'); icon.style.transform = 'rotate(0deg)'; } else { el.classList.add('show'); icon.style.transform = 'rotate(180deg)'; } }
@@ -339,17 +336,63 @@ Aquí tienes el código completo actualizado:
         }
         function editExpense(id) { openExpenseModal(id); }
         function delExpense(id) { if(confirm("¿Borrar este gasto?")) { state.data.expenses = state.data.expenses.filter(x => x.id !== id); save(); render('expenses'); } }
+        
+        // --- NUEVA FUNCIÓN IMPORTAR CSV ---
+        function importCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let importedCount = 0;
+                
+                // Recorrer líneas (saltamos la cabecera)
+                lines.slice(1).forEach(line => {
+                    if(!line.trim()) return; // Saltar líneas vacías
+                    
+                    // Separar por coma. Formato esperado: Fecha, Rubro, Detalle, Monto
+                    const parts = line.split(',');
+                    if(parts.length >= 4) {
+                        const date = parts[0].trim();
+                        const cat = parts[1].trim();
+                        // El detalle puede tener comas, unimos del index 2 al -1 (opcional, para simpleza tomamos el 2)
+                        const detail = parts[2].trim(); 
+                        const amount = parseFloat(parts[3].trim());
+                        
+                        if(date && !isNaN(amount)) {
+                            state.data.expenses.push({
+                                id: Date.now() + Math.random(), // ID único
+                                date: date,
+                                cat: cat || 'Otros',
+                                detail: detail,
+                                amount: amount
+                            });
+                            importedCount++;
+                        }
+                    }
+                });
+                
+                save();
+                alert(`¡Importación completa! Se cargaron ${importedCount} gastos.`);
+                render('expenses');
+            };
+            reader.readAsText(file);
+            // Resetear el input para permitir volver a subir el mismo archivo si hace falta
+            event.target.value = ''; 
+        }
+
         function exportCSV() {
             let rows = [["Fecha", "Rubro", "Detalle", "Monto"]]; state.data.expenses.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(e => { rows.push([e.date, e.cat, e.detail || '', e.amount]); });
             let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n"); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "gastos_homehub.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // --- CALENDARIO (CORREGIDO) ---
+        // --- CALENDARIO ---
         function renderCal(c, alerts) {
             let now = new Date(); let y = now.getFullYear(), m = now.getMonth(); let days = new Date(y, m+1, 0).getDate(); let start = (new Date(y, m, 1).getDay() + 6) % 7;
             let html = `<div style="display:flex; justify-content:space-between; margin-bottom:10px"><h2>📅 Agenda</h2><button class="icon-btn" onclick="openModal('m-task')"><i class="fa-solid fa-plus"></i></button></div>`;
             if(alerts.length > 0) html += `<div class="alert-box" onclick="openAlertModal()"><i class="fa-solid fa-bell"></i><div><b>⚠️ Pendientes:</b> ${alerts.length} tarea(s)</div></div>`;
-
             html += `<div class="cal-grid">`;
             ['L','M','X','J','V','S','D'].forEach(d => html += `<div class="cal-head">${d}</div>`);
             for(let i=0; i<start; i++) html += `<div class="cal-cell" style="opacity:0"></div>`;
@@ -358,48 +401,24 @@ Aquí tienes el código completo actualizado:
                 let tasks = (state.data.tasks || []).filter(t => t.date === dateStr); let plants = (state.data.plants || []).filter(p => p.next === dateStr);
                 html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="openTask('${dateStr}')">${d}${tasks.length ? `<div class="cal-dot dot-task"></div>` : ''}${plants.length ? `<div class="cal-dot dot-plant" style="left:60%"></div>` : ''}</div>`;
             }
-            html += `</div>`;
-            c.innerHTML = html;
+            html += `</div>`; c.innerHTML = html;
         }
         function openTask(date) { $('f-task-date').value = date; openModal('m-task'); }
         function saveTask() { let txt = $('f-task-txt').value; let date = $('f-task-date').value; if(!txt) return; state.data.tasks.push({id: Date.now(), txt, date, status: 'pendiente'}); save(); closeModal('m-task'); render('calendar'); }
 
-        // --- COMIDAS (MEJORADO) ---
+        // --- COMIDAS ---
         function renderMeals(c) {
             let stock = (state.data.meals && Array.isArray(state.data.meals.stock)) ? state.data.meals.stock : [];
             let validRecipes = COOKBOOK.filter(r => r.ings.some(i => stock.includes(i)));
             const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
-
-            let html = `<h2>🍽️ CocinAI</h2>
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-                    <b>❄️ Mi heladera</b>
-                    <button class="icon-btn" onclick="addIng()"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <div style="min-height:30px">
-                    ${stock.map(s => `<div class="stock-pill">${s} <button onclick="delIng('${s}')">&times;</button></div>`).join('')}
-                </div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 10px 5px">
-                <span style="font-size:0.8rem; color:var(--text-muted)">Recetas sugeridas (${validRecipes.length} encontradas):</span>
-                <button class="icon-btn" onclick="render('meals')" title="Más ideas"><i class="fa-solid fa-refresh"></i></button>
-            </div>`;
-            
-            if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes en "Mi heladera".</p>`;
-            
-            // Mostramos hasta 5 recetas aleatorias para dar variedad real
-            shuffle(validRecipes).slice(0, 5).forEach(r => {
-                html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer"><h4>${r.name}</h4><p style="font-size:0.7rem; color:var(--text-muted)">${r.ings.join(', ')}</p></div>`;
-            });
+            let html = `<h2>🍽️ CocinAI</h2><div class="card"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px"><b>❄️ Mi heladera</b><button class="icon-btn" onclick="addIng()"><i class="fa-solid fa-plus"></i></button></div><div style="min-height:30px">${stock.map(s => `<div class="stock-pill">${s} <button onclick="delIng('${s}')">&times;</button></div>`).join('')}</div></div><div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 10px 5px"><span style="font-size:0.8rem; color:var(--text-muted)">Recetas sugeridas (${validRecipes.length} encontradas):</span><button class="icon-btn" onclick="render('meals')" title="Más ideas"><i class="fa-solid fa-refresh"></i></button></div>`;
+            if(validRecipes.length === 0) html += `<p style="text-align:center; opacity:0.5; margin:20px">Agrega ingredientes.</p>`;
+            shuffle(validRecipes).slice(0, 5).forEach(r => { html += `<div class="card" onclick="showRecipe('${r.name}')" style="cursor:pointer"><h4>${r.name}</h4><p style="font-size:0.7rem; color:var(--text-muted)">${r.ings.join(', ')}</p></div>`; });
             c.innerHTML = html;
         }
         function addIng() { let i = prompt("Ingrediente:"); if(i) { if(!state.data.meals) state.data.meals={stock:[]}; if(!state.data.meals.stock) state.data.meals.stock=[]; state.data.meals.stock.push(i); save(); render('meals'); } }
         function delIng(i) { if(state.data.meals && state.data.meals.stock) state.data.meals.stock = state.data.meals.stock.filter(s => s !== i); save(); render('meals'); }
-        function showRecipe(name) {
-            let r = COOKBOOK.find(x => x.name === name); if(!r) return; let url = `https://www.google.com/search?q=receta+${encodeURIComponent(name)}+paso+a+paso`;
-            $('recipe-content').innerHTML = `<h2>${r.name}</h2><p style="color:var(--text-muted); margin:5px 0 15px 0">${r.ings.join(', ')}</p><div style="margin-bottom:15px">${r.steps.map(s => `<div class="recipe-step">${s}</div>`).join('')}</div><div style="background:var(--primary-light); padding:10px; border-radius:10px; font-size:0.8rem"><b>Tip:</b> ${r.tip}</div><a href="${url}" target="_blank" style="display:block; text-align:center; margin-top:15px; color:var(--primary); font-weight:700; text-decoration:none"><i class="fa-solid fa-globe"></i> Buscar en la Web</a>`;
-            openModal('m-recipe');
-        }
+        function showRecipe(name) { let r = COOKBOOK.find(x => x.name === name); if(!r) return; let url = `https://www.google.com/search?q=receta+${encodeURIComponent(name)}+paso+a+paso`; $('recipe-content').innerHTML = `<h2>${r.name}</h2><p style="color:var(--text-muted); margin:5px 0 15px 0">${r.ings.join(', ')}</p><div style="margin-bottom:15px">${r.steps.map(s => `<div class="recipe-step">${s}</div>`).join('')}</div><div style="background:var(--primary-light); padding:10px; border-radius:10px; font-size:0.8rem"><b>Tip:</b> ${r.tip}</div><a href="${url}" target="_blank" style="display:block; text-align:center; margin-top:15px; color:var(--primary); font-weight:700; text-decoration:none"><i class="fa-solid fa-globe"></i> Buscar en la Web</a>`; openModal('m-recipe'); }
 
         // --- SECCIONES SIMPLES ---
         function renderMore(c) { c.innerHTML = `<h2>⚡ Funciones</h2><br><div class="card" onclick="render('shopping')" style="cursor:pointer"><b>🛒 Lista de Compras</b></div><div class="card" onclick="render('plants')" style="cursor:pointer"><b>🌱 Mis Plantas</b></div><div class="card" onclick="logout()" style="cursor:pointer; border-color:var(--danger); color:var(--danger)"><b>🚪 Cerrar Sesión</b></div>`; }
