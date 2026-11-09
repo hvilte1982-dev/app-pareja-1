@@ -105,6 +105,7 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
 
     <!-- App -->
     <div id="app" style="display:none;">
+        <div id="sync-banner" style="display:none; padding:8px 12px; font-size:0.8rem; text-align:center; font-weight:600;"></div>
         <header>
             <div><h1 style="font-size:1.2rem">Nuestro Hogar</h1><p id="date-display" style="font-size:0.7rem; color:var(--text-muted)">Cargando...</p></div>
             <div style="display:flex; gap:5px;">
@@ -210,13 +211,66 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
         function showApp() { $('login-screen').style.display='none'; $('app').style.display='flex'; load(); subscribeToChanges(); }
         function resetData() { if(confirm("¿Borrar todos los datos locales?")) { localStorage.removeItem('hh_data_'+user); state.data = getCleanData(); render(); } }
         
-        // --- GUARDADO Y SINCRONIZACIÓN (CORREGIDO) ---
+        // --- GUARDADO Y SINCRONIZACIÓN (v2: avisa errores y no pisa datos locales) ---
+        const PENDING_KEY = () => 'hh_pending_'+user;
+        const STAMP_KEY = () => 'hh_stamp_'+user;
+        let lastLocalStamp = 0;
+
+        function setSync(status, msg) {
+            let b = $('sync-banner'); if(!b) return;
+            if(status === 'ok') { b.style.display = 'none'; return; }
+            b.style.display = 'block';
+            b.style.background = status === 'error' ? '#fde2e1' : '#fff4d6';
+            b.style.color = status === 'error' ? '#9b1c1c' : '#7a5b00';
+            b.innerText = msg;
+        }
+
+        function pushCloud() {
+            if(!db) { setSync('error', 'Sin conexión a la nube: los cambios quedan solo en este dispositivo.'); return Promise.resolve(false); }
+            const stamp = Date.now(); lastLocalStamp = stamp;
+            localStorage.setItem(STAMP_KEY(), String(stamp));
+            const payload = Object.assign({}, state.data, { _updatedAt: stamp });
+            return db.from('homehub_data')
+                .upsert({ user_name: user, data_json: JSON.stringify(payload) }, { onConflict: 'user_name' })
+                .then(r => {
+                    if(r.error) throw r.error;
+                    localStorage.removeItem(PENDING_KEY());
+                    setSync('ok'); return true;
+                })
+                .catch(err => {
+                    console.error('Error guardando en la nube', err);
+                    localStorage.setItem(PENDING_KEY(), '1');
+                    setSync('error', 'No se pudo guardar en la nube. Los cambios quedan en este dispositivo y se suben al reconectar.');
+                    return false;
+                });
+        }
+
         function save() {
             if(!user) return;
-            try {
-                localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
-                if(db) db.from('homehub_data').upsert({ user_name: user, data_json: JSON.stringify(state.data) }, { onConflict: 'user_name' }).then();
-            } catch(e) {}
+            try { localStorage.setItem('hh_data_'+user, JSON.stringify(state.data)); } catch(e) {}
+            localStorage.setItem(PENDING_KEY(), '1');
+            pushCloud();
+        }
+
+        // Une dos listas por id (o por valor si son textos). Gana la versión 'a' ante empates.
+        function mergeList(a, b) {
+            a = Array.isArray(a) ? a : []; b = Array.isArray(b) ? b : [];
+            const key = x => (x && typeof x === 'object' && x.id !== undefined) ? 'id:'+x.id : 'v:'+JSON.stringify(x);
+            const seen = new Set(a.map(key)); const out = a.slice();
+            b.forEach(x => { if(!seen.has(key(x))) { seen.add(key(x)); out.push(x); } });
+            return out;
+        }
+        function mergeData(local, cloud) {
+            return {
+                expenses: mergeList(local.expenses, cloud.expenses),
+                tasks: mergeList(local.tasks, cloud.tasks),
+                plants: mergeList(local.plants, cloud.plants),
+                shopping: mergeList(local.shopping, cloud.shopping),
+                meals: {
+                    stock: mergeList(local.meals && local.meals.stock, cloud.meals && cloud.meals.stock),
+                    weekly: mergeList(local.meals && local.meals.weekly, cloud.meals && cloud.meals.weekly)
+                }
+            };
         }
 
         // Función auxiliar para aplicar datos de forma segura
@@ -236,30 +290,46 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
 
         function load() {
             if(!user) return;
+            let hasLocal = false;
             try {
                 let d = localStorage.getItem('hh_data_'+user);
-                if(d) {
-                    applyData(JSON.parse(d));
-                }
+                if(d) { applyData(JSON.parse(d)); hasLocal = true; }
             } catch(e) { state.data = getCleanData(); }
-            
-            // Cargar de la nube
-            if(db) {
-                db.from('homehub_data').select('data_json').eq('user_name', user).single().then(r => {
-                    if(r.data && r.data.data_json) {
-                        try {
-                            applyData(JSON.parse(r.data.data_json));
-                            // Actualizar local storage con la versión más reciente de la nube
-                            localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
-                            render();
-                        } catch(e) {}
-                    }
-                });
-            }
             render();
+
+            if(!db) { setSync('error', 'Sin conexión a la nube: los cambios quedan solo en este dispositivo.'); return; }
+            setSync('warn', 'Sincronizando con la nube…');
+            db.from('homehub_data').select('data_json').eq('user_name', user).maybeSingle().then(r => {
+                if(r.error) throw r.error;
+                let cloud = null;
+                try { cloud = r.data && r.data.data_json ? JSON.parse(r.data.data_json) : null; } catch(e) {}
+                const pending = localStorage.getItem(PENDING_KEY()) === '1';
+                const localStamp = Number(localStorage.getItem(STAMP_KEY()) || 0);
+                const cloudStamp = cloud && cloud._updatedAt ? Number(cloud._updatedAt) : 0;
+
+                if(!cloud) { if(hasLocal) pushCloud(); else setSync('ok'); return; }
+                if(hasLocal && (pending || !localStamp || !cloudStamp)) {
+                    // Hay cambios locales sin subir (o datos de la versión vieja): se unen, no se pisan.
+                    const local = state.data; applyData(cloud);
+                    state.data = mergeData(local, state.data);
+                    localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
+                    render(); pushCloud();
+                } else {
+                    applyData(cloud);
+                    localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
+                    if(cloudStamp) localStorage.setItem(STAMP_KEY(), String(cloudStamp));
+                    render(); setSync('ok');
+                }
+            }).catch(err => {
+                console.error('Error leyendo la nube', err);
+                setSync('error', 'No se pudo conectar con la nube. Estás viendo los datos guardados en este dispositivo.');
+            });
         }
 
-        // --- ¡SINCRONIZACIÓN EN TIEMPO REAL RESTAURADA! ---
+        // Reintenta subir cambios pendientes al volver a tener conexión o al reabrir la app
+        window.addEventListener('online', () => { if(user && localStorage.getItem(PENDING_KEY()) === '1') pushCloud(); });
+        document.addEventListener('visibilitychange', () => { if(!document.hidden && user && localStorage.getItem(PENDING_KEY()) === '1') pushCloud(); });
+
         function subscribeToChanges() {
             if(!db || !user) return;
             if(channel) db.removeChannel(channel);
@@ -268,7 +338,10 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
             .on('postgres_changes', { event: '*', schema: 'public', table: 'homehub_data', filter: 'user_name=eq.'+user }, payload => {
                 if(payload.new && payload.new.data_json) {
                      try {
-                        applyData(JSON.parse(payload.new.data_json));
+                        const incoming = JSON.parse(payload.new.data_json);
+                        if(incoming._updatedAt && incoming._updatedAt === lastLocalStamp) return;
+                        if(incoming._updatedAt) localStorage.setItem(STAMP_KEY(), String(incoming._updatedAt));
+                        applyData(incoming);
                         localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
                         render();
                      } catch(e) {}
