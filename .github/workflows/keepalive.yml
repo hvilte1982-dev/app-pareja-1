@@ -1,0 +1,23 @@
+# Consulta la base de Supabase cada 3 días para que el plan gratuito
+# no pause el proyecto por inactividad (se pausa a los ~7 días sin uso).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 12 */3 * *"   # cada 3 días, 09:17 hora Argentina
+  workflow_dispatch:          # permite ejecutarlo a mano desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar homehub_data
+        env:
+          SUP_URL: https://blckzxhtpxxwhlsksrzz.supabase.co
+          SUP_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUP_URL/rest/v1/homehub_data?select=user_name&limit=1" \
+            -H "apikey: $SUP_KEY" -H "Authorization: Bearer $SUP_KEY")
+          echo "Respuesta de Supabase: $code"
+          test "$code" = "200"
