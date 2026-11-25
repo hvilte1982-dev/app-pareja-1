@@ -209,12 +209,12 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
 
         function $(id) { return document.getElementById(id); }
         function showApp() { $('login-screen').style.display='none'; $('app').style.display='flex'; load(); subscribeToChanges(); }
-        function resetData() { if(confirm("¿Borrar todos los datos locales?")) { localStorage.removeItem('hh_data_'+user); state.data = getCleanData(); render(); } }
+        function resetData() { if(confirm("¿Borrar los datos guardados en este celular? (Los de la nube no se tocan y se vuelven a descargar)")) { localStorage.removeItem('hh_data_'+user); localStorage.removeItem(BASE_KEY()); localStorage.removeItem(PENDING_KEY()); state.data = getCleanData(); render(); syncNow(); } }
         
-        // --- GUARDADO Y SINCRONIZACIÓN (v2: avisa errores y no pisa datos locales) ---
+        // --- GUARDADO Y SINCRONIZACIÓN (v3: se actualiza sola y combina cambios de ambos celulares) ---
         const PENDING_KEY = () => 'hh_pending_'+user;
-        const STAMP_KEY = () => 'hh_stamp_'+user;
-        let lastLocalStamp = 0;
+        const BASE_KEY = () => 'hh_base_'+user;   // última versión acordada con la nube
+        let syncing = null, syncAgain = false, lastSyncOk = 0;
 
         function setSync(status, msg) {
             let b = $('sync-banner'); if(!b) return;
@@ -225,129 +225,113 @@ Aquí tienes el código definitivo y reparado. Copia y pega esto en tu `index.ht
             b.innerText = msg;
         }
 
-        function pushCloud() {
-            if(!db) { setSync('error', 'Sin conexión a la nube: los cambios quedan solo en este dispositivo.'); return Promise.resolve(false); }
-            const stamp = Date.now(); lastLocalStamp = stamp;
-            localStorage.setItem(STAMP_KEY(), String(stamp));
-            const payload = Object.assign({}, state.data, { _updatedAt: stamp });
-            return db.from('homehub_data')
-                .upsert({ user_name: user, data_json: JSON.stringify(payload) }, { onConflict: 'user_name' })
-                .then(r => {
-                    if(r.error) throw r.error;
-                    localStorage.removeItem(PENDING_KEY());
-                    setSync('ok'); return true;
-                })
-                .catch(err => {
-                    console.error('Error guardando en la nube', err);
-                    localStorage.setItem(PENDING_KEY(), '1');
-                    setSync('error', 'No se pudo guardar en la nube. Los cambios quedan en este dispositivo y se suben al reconectar.');
-                    return false;
-                });
+        function normalize(data) {
+            data = (data && typeof data === 'object') ? data : {};
+            const A = v => Array.isArray(v) ? v : [];
+            return {
+                expenses: A(data.expenses), tasks: A(data.tasks), plants: A(data.plants), shopping: A(data.shopping),
+                meals: { stock: A(data.meals && data.meals.stock), weekly: A(data.meals && data.meals.weekly) }
+            };
+        }
+        function applyData(data) { if(data && typeof data === 'object') state.data = normalize(data); }
+
+        // Combinación de 3 vías por lista: parte de la nube y aplica solo lo que ESTE celular
+        // agregó, modificó o borró desde la última sincronización (base). Así no se pisan cambios.
+        const itemKey = x => (x && typeof x === 'object' && x.id !== undefined) ? 'id:'+x.id : 'v:'+JSON.stringify(x);
+        function merge3(base, local, cloud) {
+            const toMap = arr => { const m = new Map(); arr.forEach(x => m.set(itemKey(x), x)); return m; };
+            const B = toMap(base), L = toMap(local), out = toMap(cloud);
+            L.forEach((item, k) => {
+                if(!B.has(k)) out.set(k, item);                                         // agregado acá
+                else if(JSON.stringify(item) !== JSON.stringify(B.get(k))) out.set(k, item); // modificado acá
+            });
+            B.forEach((item, k) => { if(!L.has(k)) out.delete(k); });                  // borrado acá
+            return [...out.values()];
+        }
+        function mergeAll(base, local, cloud) {
+            base = normalize(base); local = normalize(local); cloud = normalize(cloud);
+            return {
+                expenses: merge3(base.expenses, local.expenses, cloud.expenses),
+                tasks: merge3(base.tasks, local.tasks, cloud.tasks),
+                plants: merge3(base.plants, local.plants, cloud.plants),
+                shopping: merge3(base.shopping, local.shopping, cloud.shopping),
+                meals: { stock: merge3(base.meals.stock, local.meals.stock, cloud.meals.stock),
+                         weekly: merge3(base.meals.weekly, local.meals.weekly, cloud.meals.weekly) }
+            };
+        }
+        const same = (a, b) => JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
+
+        function readBase() { try { return JSON.parse(localStorage.getItem(BASE_KEY()) || 'null'); } catch(e) { return null; } }
+        function writeLocal() { try { localStorage.setItem('hh_data_'+user, JSON.stringify(state.data)); } catch(e) {} }
+
+        // Trae la nube, combina con lo local y, si hace falta, sube el resultado.
+        function syncNow(quiet) {
+            if(!user) return Promise.resolve();
+            if(!db) { setSync('error', 'Sin conexión a la nube: los cambios quedan solo en este dispositivo.'); return Promise.resolve(); }
+            if(syncing) { syncAgain = true; return syncing; }
+            if(!quiet && !lastSyncOk) setSync('warn', 'Sincronizando con la nube…');
+            syncing = (async () => {
+                const r = await db.from('homehub_data').select('data_json').eq('user_name', user).maybeSingle();
+                if(r.error) throw r.error;
+                let cloud = null;
+                try { cloud = r.data && r.data.data_json ? JSON.parse(r.data.data_json) : null; } catch(e) {}
+                const base = readBase();
+                const local = state.data;
+                const merged = cloud ? mergeAll(base || {}, local, cloud) : normalize(local);
+                if(!cloud || !same(merged, cloud)) {
+                    const w = await db.from('homehub_data').upsert(
+                        { user_name: user, data_json: JSON.stringify(Object.assign({}, merged, { _updatedAt: Date.now() })) },
+                        { onConflict: 'user_name' });
+                    if(w.error) throw w.error;
+                }
+                const changedView = !same(merged, state.data);
+                applyData(merged); writeLocal();
+                localStorage.setItem(BASE_KEY(), JSON.stringify(state.data));
+                localStorage.removeItem(PENDING_KEY());
+                lastSyncOk = Date.now(); setSync('ok');
+                if(changedView && !document.querySelector('.modal[style*="flex"]')) render();
+            })().catch(err => {
+                console.error('Error de sincronización', err);
+                setSync('error', localStorage.getItem(PENDING_KEY()) === '1'
+                    ? 'No se pudo guardar en la nube. Los cambios quedan en este celular y se suben solos al reconectar.'
+                    : 'No se pudo conectar con la nube. Estás viendo los datos guardados en este celular.');
+            }).finally(() => {
+                syncing = null;
+                if(syncAgain) { syncAgain = false; syncNow(true); }
+            });
+            return syncing;
         }
 
         function save() {
             if(!user) return;
-            try { localStorage.setItem('hh_data_'+user, JSON.stringify(state.data)); } catch(e) {}
+            writeLocal();
             localStorage.setItem(PENDING_KEY(), '1');
-            pushCloud();
-        }
-
-        // Une dos listas por id (o por valor si son textos). Gana la versión 'a' ante empates.
-        function mergeList(a, b) {
-            a = Array.isArray(a) ? a : []; b = Array.isArray(b) ? b : [];
-            const key = x => (x && typeof x === 'object' && x.id !== undefined) ? 'id:'+x.id : 'v:'+JSON.stringify(x);
-            const seen = new Set(a.map(key)); const out = a.slice();
-            b.forEach(x => { if(!seen.has(key(x))) { seen.add(key(x)); out.push(x); } });
-            return out;
-        }
-        function mergeData(local, cloud) {
-            return {
-                expenses: mergeList(local.expenses, cloud.expenses),
-                tasks: mergeList(local.tasks, cloud.tasks),
-                plants: mergeList(local.plants, cloud.plants),
-                shopping: mergeList(local.shopping, cloud.shopping),
-                meals: {
-                    stock: mergeList(local.meals && local.meals.stock, cloud.meals && cloud.meals.stock),
-                    weekly: mergeList(local.meals && local.meals.weekly, cloud.meals && cloud.meals.weekly)
-                }
-            };
-        }
-
-        // Función auxiliar para aplicar datos de forma segura
-        function applyData(data) {
-            if (!data || typeof data !== 'object') return;
-            state.data = {
-                expenses: Array.isArray(data.expenses) ? data.expenses : [],
-                tasks: Array.isArray(data.tasks) ? data.tasks : [],
-                plants: Array.isArray(data.plants) ? data.plants : [],
-                shopping: Array.isArray(data.shopping) ? data.shopping : [],
-                meals: {
-                    stock: (data.meals && Array.isArray(data.meals.stock)) ? data.meals.stock : [],
-                    weekly: (data.meals && Array.isArray(data.meals.weekly)) ? data.meals.weekly : []
-                }
-            };
+            syncNow(true);
         }
 
         function load() {
             if(!user) return;
-            let hasLocal = false;
-            try {
-                let d = localStorage.getItem('hh_data_'+user);
-                if(d) { applyData(JSON.parse(d)); hasLocal = true; }
-            } catch(e) { state.data = getCleanData(); }
+            try { let d = localStorage.getItem('hh_data_'+user); if(d) applyData(JSON.parse(d)); } catch(e) { state.data = getCleanData(); }
             render();
-
-            if(!db) { setSync('error', 'Sin conexión a la nube: los cambios quedan solo en este dispositivo.'); return; }
-            setSync('warn', 'Sincronizando con la nube…');
-            db.from('homehub_data').select('data_json').eq('user_name', user).maybeSingle().then(r => {
-                if(r.error) throw r.error;
-                let cloud = null;
-                try { cloud = r.data && r.data.data_json ? JSON.parse(r.data.data_json) : null; } catch(e) {}
-                const pending = localStorage.getItem(PENDING_KEY()) === '1';
-                const localStamp = Number(localStorage.getItem(STAMP_KEY()) || 0);
-                const cloudStamp = cloud && cloud._updatedAt ? Number(cloud._updatedAt) : 0;
-
-                if(!cloud) { if(hasLocal) pushCloud(); else setSync('ok'); return; }
-                if(hasLocal && (pending || !localStamp || !cloudStamp)) {
-                    // Hay cambios locales sin subir (o datos de la versión vieja): se unen, no se pisan.
-                    const local = state.data; applyData(cloud);
-                    state.data = mergeData(local, state.data);
-                    localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
-                    render(); pushCloud();
-                } else {
-                    applyData(cloud);
-                    localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
-                    if(cloudStamp) localStorage.setItem(STAMP_KEY(), String(cloudStamp));
-                    render(); setSync('ok');
-                }
-            }).catch(err => {
-                console.error('Error leyendo la nube', err);
-                setSync('error', 'No se pudo conectar con la nube. Estás viendo los datos guardados en este dispositivo.');
-            });
+            syncNow();
         }
 
-        // Reintenta subir cambios pendientes al volver a tener conexión o al reabrir la app
-        window.addEventListener('online', () => { if(user && localStorage.getItem(PENDING_KEY()) === '1') pushCloud(); });
-        document.addEventListener('visibilitychange', () => { if(!document.hidden && user && localStorage.getItem(PENDING_KEY()) === '1') pushCloud(); });
+        // Se vuelve a sincronizar al volver a la app, al recuperar conexión y cada 30 s mientras está abierta.
+        window.addEventListener('online', () => syncNow(true));
+        window.addEventListener('focus', () => syncNow(true));
+        window.addEventListener('pageshow', () => syncNow(true));
+        document.addEventListener('visibilitychange', () => { if(!document.hidden) syncNow(true); });
+        setInterval(() => { if(!document.hidden) syncNow(true); }, 30000);
 
+        // Tiempo real (si está habilitado en Supabase): ante un aviso, se re-sincroniza.
         function subscribeToChanges() {
             if(!db || !user) return;
-            if(channel) db.removeChannel(channel);
-            
-            channel = db.channel('realtime-' + user)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'homehub_data', filter: 'user_name=eq.'+user }, payload => {
-                if(payload.new && payload.new.data_json) {
-                     try {
-                        const incoming = JSON.parse(payload.new.data_json);
-                        if(incoming._updatedAt && incoming._updatedAt === lastLocalStamp) return;
-                        if(incoming._updatedAt) localStorage.setItem(STAMP_KEY(), String(incoming._updatedAt));
-                        applyData(incoming);
-                        localStorage.setItem('hh_data_'+user, JSON.stringify(state.data));
-                        render();
-                     } catch(e) {}
-                }
-            })
-            .subscribe();
+            try {
+                if(channel) db.removeChannel(channel);
+                channel = db.channel('realtime-' + user)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'homehub_data', filter: 'user_name=eq.'+user }, () => syncNow(true))
+                    .subscribe();
+            } catch(e) {}
         }
 
         function logout() { localStorage.clear(); location.reload(); }
