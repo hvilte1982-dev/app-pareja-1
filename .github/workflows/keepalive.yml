@@ -1,23 +1,40 @@
-# Consulta la base de Supabase cada 3 días para que el plan gratuito
-# no pause el proyecto por inactividad (se pausa a los ~7 días sin uso).
+# Mantiene activo el proyecto de Supabase (plan gratuito).
+# Corre 2 veces por día y hace una LECTURA y una ESCRITURA real en la base,
+# porque Supabase solo cuenta como "actividad" las consultas que tocan la base de datos.
+# La fila "_keepalive" no la usa la app (cada usuario lee solo su propia fila).
 name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: "17 12 */3 * *"   # cada 3 días, 09:17 hora Argentina
-  workflow_dispatch:          # permite ejecutarlo a mano desde la pestaña Actions
+    - cron: "23 11 * * *"   # 08:23 hora Argentina
+    - cron: "47 23 * * *"   # 20:47 hora Argentina
+  workflow_dispatch:        # permite ejecutarlo a mano desde la pestaña Actions
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Consultar homehub_data
+      - name: Leer y escribir en homehub_data
         env:
           SUP_URL: https://blckzxhtpxxwhlsksrzz.supabase.co
           SUP_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsY2t6eGh0cHh4d2hsc2tzcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU2MTgsImV4cCI6MjA4NjM0MTYxOH0.z62ADKWvhCvHSN2mHEqk_PCDEV_Jnn5g2wGPcK-he3g
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" \
+          set -e
+          read_code=$(curl -s -o /dev/null -w "%{http_code}" \
             "$SUP_URL/rest/v1/homehub_data?select=user_name&limit=1" \
             -H "apikey: $SUP_KEY" -H "Authorization: Bearer $SUP_KEY")
-          echo "Respuesta de Supabase: $code"
-          test "$code" = "200"
+          echo "Lectura: $read_code"
+
+          now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          write_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "$SUP_URL/rest/v1/homehub_data?on_conflict=user_name" \
+            -H "apikey: $SUP_KEY" -H "Authorization: Bearer $SUP_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates,return=minimal" \
+            -d "{\"user_name\":\"_keepalive\",\"data_json\":\"{\\\"ping\\\":\\\"$now\\\"}\"}")
+          echo "Escritura: $write_code"
+
+          if [ "$read_code" != "200" ] || [ "${write_code:0:1}" != "2" ]; then
+            echo "::error::Supabase no respondió bien (lectura $read_code, escritura $write_code). Puede estar pausado: entrar al panel y tocar Resume project."
+            exit 1
+          fi
